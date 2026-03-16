@@ -676,7 +676,7 @@
       padding:10px 36px 10px 14px; outline:none; -webkit-appearance:none;
     }
     .book-search-input:focus { border-color:var(--purple); }
-    .book-search-ico { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:16px; pointer-events:none; }
+    .book-search-ico { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:16px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
     .book-results {
       position:absolute; left:0; right:0; top:calc(100% + 6px); z-index:60;
       background:#111; border:1px solid var(--border); border-radius:12px;
@@ -752,6 +752,33 @@
       cursor:pointer; padding:2px 6px; border-radius:6px; line-height:1;
     }
     .harvest-del-btn:active { color:#ef4444; background:#ef444415; }
+
+    /* INLINE HARVEST LOGS */
+    .harvest-logs-inline {
+      margin-top:6px; padding:6px 8px; background:#080808;
+      border:1px solid var(--border); border-radius:6px;
+    }
+    .harvest-logs-label {
+      font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--green);
+      letter-spacing:1px; margin-bottom:4px;
+    }
+    .harvest-log-row {
+      display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+      padding:2px 0; font-size:10px;
+    }
+    .harvest-log-date {
+      font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--green);
+      flex-shrink:0;
+    }
+    .harvest-log-tag {
+      font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--muted);
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:3px; padding:1px 4px; flex-shrink:0;
+    }
+    .harvest-log-note {
+      font-size:9px; color:#444; overflow:hidden; white-space:nowrap;
+      text-overflow:ellipsis; max-width:120px;
+    }
     .harvest-add-bar {
       display:flex; align-items:center; justify-content:flex-end;
       padding:10px 16px 0;
@@ -893,6 +920,31 @@
     }
     .sow-action-del:active { background:#ef444415; color:#ef4444; border-color:#ef4444; }
     .sow-empty { text-align:center; padding:40px 0; color:#333; font-size:13px; line-height:2; }
+
+    /* INLINE GROWTH STAGES */
+    .sow-grow-inline {
+      margin-top:8px; padding:8px 10px; background:var(--bg);
+      border:1px solid var(--border); border-radius:8px;
+    }
+    .sow-grow-label {
+      font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--green);
+      letter-spacing:1px; margin-bottom:6px;
+    }
+    .sow-grow-stages {
+      display:flex; align-items:center; gap:5px; flex-wrap:wrap;
+      font-size:11px; color:#888;
+    }
+    .sow-grow-dot {
+      width:8px; height:8px; border-radius:50%; flex-shrink:0;
+    }
+    .sow-grow-dot.seed { background:#f59e0b; }
+    .sow-grow-dot.done { background:var(--green); }
+    .sow-grow-arrow { color:#333; font-size:10px; flex-shrink:0; }
+    .sow-grow-stage-name { white-space:nowrap; }
+    .sow-grow-days {
+      font-family:'JetBrains Mono',monospace; font-size:9px; color:#f59e0b;
+      margin-left:2px;
+    }
 
     /* 파종 모달 */
     .sow-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:90; display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.25s; }
@@ -1648,8 +1700,8 @@
     <div class="bk-field">
       <div class="bk-field-label">책 검색</div>
       <div class="book-search-wrap" id="bkSearchWrap">
-        <input class="book-search-input" id="bkSearchInput" placeholder="제목 또는 저자 검색..." oninput="bkSearchDebounce()" autocomplete="off" />
-        <span class="book-search-ico">🔍</span>
+        <input class="book-search-input" id="bkSearchInput" placeholder="제목 또는 저자 검색..." oninput="bkSearchDebounce()" onkeydown="if(event.key==='Enter'){event.preventDefault();bkDoSearch();}" autocomplete="off" />
+        <span class="book-search-ico" onclick="bkDoSearch()" style="cursor:pointer;pointer-events:auto;">🔍</span>
         <div class="book-results" id="bkSearchResults" style="display:none;"></div>
       </div>
     </div>
@@ -2631,24 +2683,51 @@
     const runBtn=document.getElementById('lt-run-btn');
     runBtn.textContent="⏳ 업데이트 중...";runBtn.disabled=true;
     const cf={...ltFreq};let cl=ltLast;
+
     for(let r=ltLast+1;r<=exp;r++){
       logEl.innerHTML+=`<div>🔍 ${r}회차 조회 중...</div>`;logEl.scrollTop=logEl.scrollHeight;
       try{
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:500,tools:[{type:"web_search_20250305",name:"web_search"}],messages:[{role:"user",content:`한국 로또 ${r}회차 1등 당첨번호를 검색해서 JSON만 반환: {"round":${r},"date":"YYYY-MM-DD","nums":[n1,n2,n3,n4,n5,n6],"bonus":n}`}]})});
-        const data=await res.json();
-        const text=data.content.filter(b=>b.type==="text").map(b=>b.text).join("");
-        const match=text.match(/\{[\s\S]*?\}/);if(!match)throw new Error("파싱 실패");
-        const parsed=JSON.parse(match[0]);if(!parsed.nums||parsed.nums.length!==6)throw new Error("데이터 오류");
-        [...parsed.nums,parsed.bonus].forEach(n=>{cf[n]=(cf[n]||0)+1;});cl=r;
-        logEl.innerHTML+=`<div>✅ ${r}회차 (${parsed.date}): ${parsed.nums.join(" · ")} +${parsed.bonus}</div>`;
+        // 동행복권 공식 API (CORS proxy 경유)
+        const lottoUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${r}`;
+        let data = null;
+
+        // 1차: 직접 호출 시도
+        try {
+          const res = await fetch(lottoUrl, {signal: AbortSignal.timeout(5000)});
+          data = await res.json();
+        } catch(e) {
+          // 2차: CORS proxy 경유
+          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(lottoUrl)}`;
+          const res = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
+          const text = await res.text();
+          data = JSON.parse(text);
+        }
+
+        if(!data || data.returnValue !== 'success') throw new Error('데이터 없음 (아직 추첨 전일 수 있음)');
+
+        const nums = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+        const bonus = data.bnusNo;
+        const date = data.drwNoDate || '';
+
+        if(nums.some(n => !n) || !bonus) throw new Error('번호 데이터 오류');
+
+        [...nums, bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
+        cl = r;
+
+        logEl.innerHTML+=`<div>✅ ${r}회차 (${date}): ${nums.join(" · ")} +${bonus}</div>`;
         logEl.scrollTop=logEl.scrollHeight;
         const nr=document.getElementById('lt-new-rounds');
         nr.innerHTML+=`<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r}회차</span><span style="font-size:10px;color:#444;">${parsed.date}</span></div>
-          <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${parsed.nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(parsed.bonus,30)}</div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r}회차</span><span style="font-size:10px;color:#444;">${date}</span></div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(bonus,30)}</div>
         </div>`;
-        await new Promise(res=>setTimeout(res,1000));
-      }catch(e){logEl.innerHTML+=`<div>❌ ${r}회차 실패: ${e.message}</div>`;logEl.scrollTop=logEl.scrollHeight;break;}
+        // 동행복권 서버 부하 방지
+        await new Promise(res=>setTimeout(res,500));
+      }catch(e){
+        logEl.innerHTML+=`<div>❌ ${r}회차 실패: ${e.message}</div>`;
+        logEl.scrollTop=logEl.scrollHeight;
+        break;
+      }
     }
     ltFreq={...cf};ltLast=cl;await ltSaveData();ltUpdateHeader();
     runBtn.textContent="지금 업데이트";runBtn.disabled=false;ltUpdating=false;
@@ -3305,7 +3384,7 @@
       ? `<img class="book-cover" src="${escHtml(b.cover)}" onerror="this.style.display='none'" />`
       : `<div class="book-cover" style="display:flex;align-items:center;justify-content:center;font-size:22px;">📖</div>`;
     return `
-      <div class="book-item">
+      <div class="book-item" onclick="bkOpenModal('${escAttr(b.id)}')" style="cursor:pointer;">
         ${coverHtml}
         <div class="book-info">
           <div class="book-title">${escHtml(b.title)}</div>
@@ -3316,7 +3395,10 @@
           </div>
           <div class="book-date">${b.date ? '✓ ' + b.date : ''}</div>
         </div>
-        <button class="book-del" onclick="bkDelete('${b.id}')">×</button>
+        <div style="display:flex;flex-direction:column;gap:6px;position:absolute;top:10px;right:10px;" onclick="event.stopPropagation()">
+          <button class="book-del" style="position:static;color:#444;" onclick="bkOpenModal('${escAttr(b.id)}')">✏️</button>
+          <button class="book-del" style="position:static;" onclick="bkDelete('${b.id}')">×</button>
+        </div>
       </div>`;
   }
 
@@ -3377,7 +3459,7 @@
   /* ── 저장 ── */
   function bkSave() {
     const title = document.getElementById('bkTitle').value.trim();
-    if(!title) { alert('제목을 입력해줘.'); return; }
+    if(!title) { showToast('제목을 입력해줘'); document.getElementById('bkTitle').focus(); return; }
     const books = getBooks();
     const editId = document.getElementById('bkEditId').value;
     const book = {
@@ -3391,14 +3473,14 @@
     };
     if(editId) {
       const idx = books.findIndex(b => b.id === editId);
-      if(idx !== -1) books[idx] = book;
+      if(idx !== -1) books[idx] = book; else books.push(book);
     } else {
       books.push(book);
     }
     saveBooks(books);
     document.getElementById('bkModalBg').classList.remove('open');
     bkRender();
-    showToast('책이 저장됐어');
+    showToast(editId ? '책 정보가 수정됐어' : '책이 저장됐어');
   }
 
   /* ── 책 검색 (카카오 책 API) ── */
@@ -3415,10 +3497,14 @@
     res.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#555;">검색 중...</div>';
 
     try {
-      // Google Books API (무료, 키 불필요)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000);
       const r = await fetch(
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ko&maxResults=8&printType=books`
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ko&maxResults=8&printType=books`,
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+      if(!r.ok) throw new Error('API 응답 오류: ' + r.status);
       const d = await r.json();
       const items = d.items || [];
 
@@ -3447,7 +3533,6 @@
         </div>`;
       }).join('');
 
-      // 결과 데이터 임시 저장
       window._bkSearchItems = items.map(item => {
         const info = item.volumeInfo || {};
         return {
@@ -3459,7 +3544,8 @@
         };
       });
     } catch(e) {
-      res.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#555;">검색 실패. 인터넷 연결 확인</div>';
+      const msg = e.name === 'AbortError' ? '검색 시간 초과. 다시 시도해봐.' : '검색 실패: ' + e.message;
+      res.innerHTML = `<div style="padding:12px 14px;font-size:12px;color:#555;">${msg}</div>`;
     }
   }
 
@@ -3713,29 +3799,11 @@
     natRenderHarvest();
     showToast('항목이 삭제됐어');
   }
-  function hvDelete(idx) {
-    const data = getHarvestData();
-    const item = data[idx];
-    if(!item) return;
-    // 해당 달의 마지막 위치로 이동
-    data.splice(idx, 1);
-    // 같은 달 항목 중 마지막 인덱스 찾기
-    let lastMonthIdx = -1;
-    for(let i = 0; i < data.length; i++) {
-      if(data[i].month === item.month) lastMonthIdx = i;
-    }
-    if(lastMonthIdx === -1) {
-      data.push(item);
-    } else {
-      data.splice(lastMonthIdx + 1, 0, item);
-    }
-    saveHarvestData(data);
-    natRenderHarvest();
-  }
 
   function natRenderHarvest() {
     const body = document.getElementById('harvestBody');
     const data = getHarvestData();
+    const hvLogs = getHvLogs();
     const nowMonth = new Date().getMonth() + 1;
     const months = [];
     for(let i=0;i<12;i++) months.push(((nowMonth-1+i)%12)+1);
@@ -3748,19 +3816,38 @@
           ${MONTHS_KR2[m-1]}
           <div class="harvest-month-bar"></div>
         </div>
-        ${items.map(h => `
+        ${items.map(h => {
+          // 인라인 채취 기록
+          const logs = (hvLogs[h.name] || []).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+          let logsHtml = '';
+          if(logs.length > 0) {
+            const recent = logs.slice(0, 3); // 최근 3건만
+            logsHtml = `<div class="harvest-logs-inline">
+              <div class="harvest-logs-label">채취 기록 ${logs.length}건</div>
+              ${recent.map(l => `<div class="harvest-log-row">
+                <span class="harvest-log-date">${l.date||''}</span>
+                ${l.amount ? `<span class="harvest-log-tag">군락지 ${escHtml(l.amount)}</span>` : ''}
+                ${l.location ? `<span class="harvest-log-tag">📍${escHtml(l.location)}</span>` : ''}
+                ${l.note ? `<span class="harvest-log-note">${escHtml(l.note)}</span>` : ''}
+              </div>`).join('')}
+              ${logs.length > 3 ? `<div style="font-size:9px;color:#333;margin-top:2px;">외 ${logs.length-3}건 더...</div>` : ''}
+            </div>`;
+          }
+
+          return `
           <div class="harvest-item hvlog-item-tap" onclick="hvlogOpenPanel(${h._idx})">
             <div class="harvest-period">${escHtml(h.period)}</div>
             <div class="harvest-info">
               <div class="harvest-name">${escHtml(h.name)}${h.custom ? ' <span style="font-size:9px;color:var(--purple);background:var(--purple-glow);border-radius:4px;padding:1px 4px;">내 추가</span>' : ''}</div>
               <div class="harvest-desc">${escHtml(h.desc||'')}</div>
               <span class="harvest-part">${escHtml(h.part)}</span>
+              ${logsHtml}
             </div>
             <div style="display:flex;flex-direction:column;gap:4px;align-items:center;" onclick="event.stopPropagation()">
-              <button class="harvest-del-btn" onclick="hvDelete(${h._idx})" title="맨 아래로">↓</button>
-              ${h.custom ? `<button class="harvest-del-btn" style="font-size:11px;color:#ef444460;" onclick="hvRemove(${h._idx})" title="삭제">🗑</button>` : ''}
+              <button class="harvest-del-btn" style="font-size:11px;color:#ef444460;" onclick="hvRemove(${h._idx})" title="삭제">🗑</button>
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>`;
     }).join('');
   }
@@ -3785,6 +3872,7 @@
   function hvlogClosePanel(e) {
     if(e && e.target !== document.getElementById('hvlogPanelBg')) return;
     document.getElementById('hvlogPanelBg').classList.remove('open');
+    natRenderHarvest(); // 인라인 기록 갱신
   }
 
   function hvlogRenderList() {
@@ -3893,6 +3981,7 @@
     saveHvLogs(all);
     document.getElementById('hvlogModalBg').classList.remove('open');
     hvlogRenderList();
+    natRenderHarvest(); // 인라인 기록 갱신
     showToast('채취 기록이 저장됐어');
   }
 
@@ -3904,6 +3993,7 @@
     all[hvlogCurrentName] = logs.filter(l => l.id !== id);
     saveHvLogs(all);
     hvlogRenderList();
+    natRenderHarvest(); // 인라인 기록 갱신
     showToast('채취 기록이 삭제됐어');
   }
 
@@ -3928,6 +4018,7 @@
   function growClosePanel(e) {
     if(e && e.target !== document.getElementById('growPanelBg')) return;
     document.getElementById('growPanelBg').classList.remove('open');
+    sowRender(); // 생육 기록 변경사항 즉시 반영
   }
 
   function growRenderTimeline(sowing) {
@@ -4050,6 +4141,7 @@
     document.getElementById('growModalBg').classList.remove('open');
     const sowing = getSowings().find(s => s.id === growCurrentId);
     if(sowing) growRenderTimeline(sowing);
+    sowRender(); // 파종 목록의 인라인 생육 기록도 갱신
     showToast('생육 단계가 저장됐어');
   }
 
@@ -4062,6 +4154,7 @@
     saveGrowLogs(all);
     const sowing = getSowings().find(s => s.id === growCurrentId);
     if(sowing) growRenderTimeline(sowing);
+    sowRender(); // 파종 목록의 인라인 생육 기록도 갱신
     showToast('생육 기록이 삭제됐어');
   }
 
@@ -4087,7 +4180,31 @@
       list.innerHTML = `<div class="sow-empty">🌱<br><br>${sowFilterActive==='전체'?'파종 기록이 없어.<br>＋ 버튼으로 추가해봐!':'해당 식물 기록 없음'}</div>`;
       return;
     }
-    list.innerHTML = filtered.map(s => `
+    const growAll = getGrowLogs();
+
+    list.innerHTML = filtered.map(s => {
+      // 해당 파종의 생육 기록 가져오기
+      const stages = (growAll[s.id] || []).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+      const seedDate = s.date || null;
+
+      let growHtml = '';
+      if(stages.length > 0) {
+        growHtml = `<div class="sow-grow-inline">
+          <div class="sow-grow-label">생육 기록 (${stages.length})</div>
+          <div class="sow-grow-stages">
+            <div class="sow-grow-dot seed"></div>
+            <span class="sow-grow-stage-name">파종</span>
+            ${stages.map(st => {
+              const days = seedDate && st.date ? Math.round((parseLocalDate(st.date) - parseLocalDate(seedDate)) / 86400000) : null;
+              return `<span class="sow-grow-arrow">→</span>
+                <div class="sow-grow-dot done"></div>
+                <span class="sow-grow-stage-name">${escHtml(st.name)}${days !== null ? `<span class="sow-grow-days">+${days}일</span>` : ''}</span>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }
+
+      return `
       <div class="sow-item">
         <div class="sow-item-top">
           <div class="sow-item-name">${escHtml(s.name)}</div>
@@ -4099,12 +4216,14 @@
           ${s.weather ? `<span class="sow-tag">${escHtml(s.weather)}</span>` : ''}
         </div>
         ${s.note ? `<div class="sow-item-note">${escHtml(s.note)}</div>` : ''}
+        ${growHtml}
         <div class="sow-item-actions">
           <button class="sow-action-edit" style="flex:2;" onclick="growOpenPanel('${s.id}')">🌱 생육 기록</button>
           <button class="sow-action-edit" onclick="sowOpenModal('${s.id}')">✏️ 수정</button>
           <button class="sow-action-del" onclick="sowDelete('${s.id}')">🗑</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   function sowSetFilter(name) {
@@ -4217,7 +4336,7 @@
 
   function sowSave() {
     const name = document.getElementById('sowName').value.trim();
-    if(!name) { alert('식물 이름을 입력해줘.'); return; }
+    if(!name) { showToast('식물 이름을 입력해줘'); document.getElementById('sowName').focus(); return; }
     const sowings = getSowings();
     const editId = document.getElementById('sowEditId').value;
     const record = {
