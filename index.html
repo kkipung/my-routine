@@ -81,6 +81,18 @@
       padding: 52px 24px 24px; border-bottom: 1px solid var(--border);
       position: relative; overflow: hidden;
     }
+    .routine-date-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .routine-nav-btn {
+      width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border);
+      background: none; color: #888; font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent; transition: all 0.15s;
+    }
+    .routine-nav-btn:active { background: var(--surface); }
+    .routine-date-center { text-align: center; cursor: pointer; }
     .header::before {
       content: ''; position: absolute; top: -80px; left: -60px;
       width: 240px; height: 240px;
@@ -214,6 +226,7 @@
     .day-cell.complete .day-dot { background: var(--purple); box-shadow: 0 0 8px var(--purple-glow); }
     .day-cell.partial .day-dot  { background: var(--yellow); }
     .day-cell.today { border-color: var(--purple); background: var(--purple-glow); }
+    .day-cell.selected { border-color: var(--green); background: var(--green-glow); }
     .reset-section { padding: 0 24px 20px; display: flex; justify-content: center; gap: 10px; }
     .reset-btn {
       background: none; border: 1px solid var(--border); color: var(--muted);
@@ -1192,7 +1205,14 @@
 <!-- ====== ROUTINE PAGE ====== -->
 <div class="page" id="page-routine">
   <div class="header">
-    <div class="date-label" id="dateLabel"></div>
+    <div class="routine-date-nav">
+      <button class="routine-nav-btn" onclick="routineNav(-1)">‹</button>
+      <div class="routine-date-center" onclick="routineGoToday()">
+        <div class="date-label" id="dateLabel"></div>
+        <div id="routineTodayBadge" style="display:none;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--green);letter-spacing:1px;margin-top:2px;cursor:pointer;">↩ 오늘로 이동</div>
+      </div>
+      <button class="routine-nav-btn" onclick="routineNav(1)">›</button>
+    </div>
     <div class="title">매일 루틴</div>
     <div class="streak-row">
       <div class="streak-badge" id="streakBadge">🔥 0일 연속</div>
@@ -1201,7 +1221,7 @@
   </div>
   <div class="progress-section">
     <div class="progress-header">
-      <div class="progress-label">오늘의 진행</div>
+      <div class="progress-label" id="progressLabel">오늘의 진행</div>
       <div class="progress-count" id="progressCount">0 / 7</div>
     </div>
     <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
@@ -1939,7 +1959,15 @@
   }
   const getRoutine  = () => safeJSONParse(localStorage.getItem('myRoutine'), {});
   const saveRoutine = s => { safeSetItem('myRoutine', JSON.stringify(s)); };
-  const getTodayDone= () => getRoutine()[todayKey()] || {};
+
+  // 현재 보고 있는 날짜 (오늘이 아닐 수 있음)
+  var routineViewDate = todayKey();
+
+  function getViewDone() { return getRoutine()[routineViewDate] || {}; }
+  function saveViewDone(d) { const s=getRoutine(); s[routineViewDate]=d; saveRoutine(s); }
+
+  // 하위 호환
+  const getTodayDone = () => getRoutine()[todayKey()] || {};
   function saveTodayDone(d) { const s=getRoutine(); s[todayKey()]=d; saveRoutine(s); }
   const getNotifs   = () => safeJSONParse(localStorage.getItem('notifSettings'), {});
   const saveNotifs  = s => safeSetItem('notifSettings', JSON.stringify(s));
@@ -2043,18 +2071,21 @@
     setTimeout(() => { _toggleLock = false; }, 250);
     if(e) addRipple(e, el.querySelector('.habit-row'));
     const id = el.dataset.id;
-    const done = getTodayDone();
+    const done = getViewDone();
     done[id] = !done[id];
-    saveTodayDone(done);
+    saveViewDone(done);
     el.classList.toggle('done', !!done[id]);
     haptic(done[id] ? 'medium' : 'light');
     updateUI();
-    const count = Object.values(done).filter(Boolean).length;
-    if(count === HABITS.length) {
-      setTimeout(() => {
-        document.getElementById('celebration').classList.add('show');
-        launchConfetti();
-      }, 400);
+    // 축하는 오늘 날짜에서만
+    if(routineViewDate === todayKey()) {
+      const count = Object.values(done).filter(Boolean).length;
+      if(count === HABITS.length) {
+        setTimeout(() => {
+          document.getElementById('celebration').classList.add('show');
+          launchConfetti();
+        }, 400);
+      }
     }
   }
   function closeCelebration() {
@@ -2110,12 +2141,14 @@
     draw();
   }
   async function resetToday() {
-    const ok = await showConfirm('오늘의 루틴 기록을 초기화할까?', '초기화');
+    const isToday = routineViewDate === todayKey();
+    const label = isToday ? '오늘' : routineViewDate;
+    const ok = await showConfirm(`${label}의 루틴 기록을 초기화할까?`, '초기화');
     if(!ok) return;
-    saveTodayDone({});
+    saveViewDone({});
     document.querySelectorAll('.habit-item').forEach(el => el.classList.remove('done'));
     updateUI();
-    showToast('오늘 루틴이 초기화됐어');
+    showToast(`${label} 루틴이 초기화됐어`);
   }
 
   async function resetAllData() {
@@ -2149,43 +2182,93 @@
     return streak;
   }
   function updateUI() {
-    const done  = getTodayDone();
+    const done  = getViewDone();
     const count = Object.values(done).filter(Boolean).length;
     document.getElementById('progressCount').textContent = `${count} / ${HABITS.length}`;
     document.getElementById('progressBar').style.width   = Math.round(count/HABITS.length*100)+'%';
     const streak = calcStreak();
     document.getElementById('streakBadge').textContent = `🔥 ${streak}일 연속`;
     document.getElementById('streakText').textContent  = streak===0 ? '오늘부터 시작' : `${streak}일째 지속 중`;
+
+    // 날짜 라벨 업데이트
+    const isToday = routineViewDate === todayKey();
+    const vd = parseLocalDate(routineViewDate);
+    const mo = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+    const dowNames = ['일','월','화','수','목','금','토'];
+    const dateStr = `${vd.getFullYear()}년 ${mo[vd.getMonth()]} ${vd.getDate()}일 (${dowNames[vd.getDay()]})`;
+    document.getElementById('dateLabel').textContent = dateStr;
+    document.getElementById('routineTodayBadge').style.display = isToday ? 'none' : '';
+    document.getElementById('progressLabel').textContent = isToday ? '오늘의 진행' : `${vd.getMonth()+1}/${vd.getDate()} 진행`;
+
+    // 미래 날짜는 내비 버튼 비활성화
+    const tomorrow = addDays(todayKey(), 1);
+    const nextBtn = document.querySelector('.routine-nav-btn:last-child');
+
     renderWeek();
   }
   function renderWeek() {
     const state=getRoutine(); const grid=document.getElementById('weekGrid');
-    grid.innerHTML=''; const today=new Date(); const dow=today.getDay();
+    grid.innerHTML='';
+    const viewD = parseLocalDate(routineViewDate);
+    const viewDow = viewD.getDay();
+    const todayStr = todayKey();
     for(let i=0;i<7;i++){
-      const d=new Date(today); d.setDate(today.getDate()-dow+i);
+      const d=new Date(viewD); d.setDate(viewD.getDate()-viewDow+i);
       const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const cnt=Object.values(state[key]||{}).filter(Boolean).length;
+      const isToday = key === todayStr;
+      const isView = key === routineViewDate;
       const cell=document.createElement('div');
-      cell.className='day-cell'+(i===dow?' today':'')+(cnt===HABITS.length?' complete':cnt>0?' partial':'');
+      cell.className='day-cell'+(isToday?' today':'')+(isView && !isToday?' selected':'')+(cnt===HABITS.length?' complete':cnt>0?' partial':'');
       cell.innerHTML=`<div class="day-label">${DAYS[i]}</div><div class="day-dot"></div>`;
+      cell.style.cursor = 'pointer';
+      cell.onclick = () => { routineViewDate = key; routineLoadDate(); };
       grid.appendChild(cell);
     }
+  }
+
+  /* ── ROUTINE DATE NAVIGATION ── */
+  function routineNav(dir) {
+    const d = parseLocalDate(routineViewDate);
+    d.setDate(d.getDate() + dir);
+    // 미래는 오늘까지만
+    const newKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    if(newKey > todayKey()) return;
+    routineViewDate = newKey;
+    routineLoadDate();
+  }
+
+  function routineGoToday() {
+    routineViewDate = todayKey();
+    routineLoadDate();
+  }
+
+  function routineLoadDate() {
+    const done = getViewDone();
+    document.querySelectorAll('.habit-item').forEach(el => {
+      el.classList.toggle('done', !!done[el.dataset.id]);
+    });
+    loadNotes();
+    updateUI();
   }
 
   /* ── NOTIFICATIONS (비활성화됨) ── */
   function scheduleAllNotifs() { /* 알림 탭 제거됨 — no-op */ }
 
   /* ── HABIT NOTES ── */
-  function getTodayNotes() {
+  function getViewNotes() {
     const all = safeJSONParse(localStorage.getItem('habitNotes'), {});
-    return all[todayKey()] || {};
+    return all[routineViewDate] || {};
   }
-  function saveTodayNotes(notes) {
+  function saveViewNotes(notes) {
     const all = safeJSONParse(localStorage.getItem('habitNotes'), {});
-    all[todayKey()] = notes;
+    all[routineViewDate] = notes;
     safeSetItem('habitNotes', JSON.stringify(all));
-   
   }
+  // 하위 호환
+  function getTodayNotes() { return getViewNotes(); }
+  function saveTodayNotes(notes) { saveViewNotes(notes); }
+
   function toggleNote(e, id) {
     e.stopPropagation();
     const area = document.getElementById('note-' + id);
@@ -2195,14 +2278,14 @@
     if(!isOpen) area.querySelector('textarea').focus();
   }
   function saveNote(id, val) {
-    const notes = getTodayNotes();
+    const notes = getViewNotes();
     notes[id] = val;
-    saveTodayNotes(notes);
+    saveViewNotes(notes);
     const btn = document.querySelector(`.habit-item[data-id="${id}"] .note-btn`);
     if(btn) btn.classList.toggle('has-note', !!val.trim());
   }
   function loadNotes() {
-    const notes = getTodayNotes();
+    const notes = getViewNotes();
     HABITS.forEach(id => {
       const ta  = document.querySelector(`#note-${id} textarea`);
       const btn = document.querySelector(`.habit-item[data-id="${id}"] .note-btn`);
@@ -2675,6 +2758,51 @@
     document.getElementById('lt-update-arrow').style.transform=ltUpdOpen?"rotate(180deg)":"none";
   }
 
+  // CORS 프록시 다중 폴백
+  async function fetchWithCorsProxy(targetUrl, timeout = 10000) {
+    const proxies = [
+      { name: 'allorigins', fn: url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
+      { name: 'corsproxy', fn: url => `https://corsproxy.io/?url=${encodeURIComponent(url)}` },
+      { name: 'thingproxy', fn: url => `https://thingproxy.freeboard.io/fetch/${url}` },
+      { name: 'codetabs', fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
+      { name: 'cors.sh', fn: url => `https://proxy.cors.sh/${url}` },
+    ];
+
+    // 1차: 직접 호출
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 3000);
+      const res = await fetch(targetUrl, { signal: controller.signal });
+      clearTimeout(tid);
+      if(res.ok) {
+        const text = await res.text();
+        if(text && text.trim().startsWith('{')) return text;
+      }
+    } catch(e) { /* CORS 차단 → 프록시 시도 */ }
+
+    // 2차~: 프록시 순차 시도
+    const errors = [];
+    for(const proxy of proxies) {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), timeout);
+        const res = await fetch(proxy.fn(targetUrl), { signal: controller.signal });
+        clearTimeout(tid);
+        if(res.ok) {
+          const text = await res.text();
+          if(text && text.trim().startsWith('{')) return text;
+          errors.push(`${proxy.name}: 응답이 JSON이 아님`);
+        } else {
+          errors.push(`${proxy.name}: HTTP ${res.status}`);
+        }
+      } catch(e) {
+        errors.push(`${proxy.name}: ${e.name === 'AbortError' ? '시간초과' : e.message}`);
+        continue;
+      }
+    }
+    throw new Error('프록시 연결 실패 (' + errors.slice(0,2).join(', ') + ')');
+  }
+
   async function ltRunUpdate(){
     if(ltUpdating)return;const exp=ltCalcExpected();if(ltLast>=exp)return;
     ltUpdating=true;
@@ -2687,21 +2815,9 @@
     for(let r=ltLast+1;r<=exp;r++){
       logEl.innerHTML+=`<div>🔍 ${r}회차 조회 중...</div>`;logEl.scrollTop=logEl.scrollHeight;
       try{
-        // 동행복권 공식 API (CORS proxy 경유)
         const lottoUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${r}`;
-        let data = null;
-
-        // 1차: 직접 호출 시도
-        try {
-          const res = await fetch(lottoUrl, {signal: AbortSignal.timeout(5000)});
-          data = await res.json();
-        } catch(e) {
-          // 2차: CORS proxy 경유
-          const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(lottoUrl)}`;
-          const res = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
-          const text = await res.text();
-          data = JSON.parse(text);
-        }
+        const text = await fetchWithCorsProxy(lottoUrl);
+        const data = JSON.parse(text);
 
         if(!data || data.returnValue !== 'success') throw new Error('데이터 없음 (아직 추첨 전일 수 있음)');
 
@@ -2721,8 +2837,7 @@
           <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r}회차</span><span style="font-size:10px;color:#444;">${date}</span></div>
           <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(bonus,30)}</div>
         </div>`;
-        // 동행복권 서버 부하 방지
-        await new Promise(res=>setTimeout(res,500));
+        await new Promise(res=>setTimeout(res,600));
       }catch(e){
         logEl.innerHTML+=`<div>❌ ${r}회차 실패: ${e.message}</div>`;
         logEl.scrollTop=logEl.scrollHeight;
@@ -4620,19 +4735,13 @@
 
   /* ── INIT ── */
   function init() {
-    const d=new Date();
-    const mo=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-    document.getElementById('dateLabel').textContent=`${d.getFullYear()}년 ${mo[d.getMonth()]} ${d.getDate()}일`;
-    const done=getTodayDone();
-    document.querySelectorAll('.habit-item').forEach(el=>{ if(done[el.dataset.id]) el.classList.add('done'); });
-    updateUI();
-    loadNotes();
+    routineViewDate = todayKey();
+    routineLoadDate();
     scheduleAllNotifs();
     ltInit();
     calInit();
     wxAutoRefresh();
     gdInitUI();
-    // 자정 자동 리셋 (drift 방지)
     scheduleMidnightReset();
   }
 
