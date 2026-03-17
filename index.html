@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500;700&family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@300;400&family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -93,6 +93,43 @@
     }
     .routine-nav-btn:active { background: var(--surface); }
     .routine-date-center { text-align: center; cursor: pointer; }
+
+    /* HORIZONTAL SPLIT LAYOUT */
+    .routine-split {
+      display: flex; border-top: 1px solid var(--border);
+      min-height: 0; /* flex child can shrink */
+    }
+    .routine-split-left {
+      flex: 1; min-width: 0;
+      border-right: 1px solid var(--border);
+      max-height: 55vh; overflow-y: auto;
+    }
+    .routine-split-right {
+      flex: 1; min-width: 0;
+      max-height: 55vh; overflow-y: auto;
+    }
+    .split-panel-label {
+      font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
+      padding: 12px 12px 4px; position: sticky; top: 0;
+      background: var(--bg); z-index: 2;
+    }
+    /* 분할 영역 안 습관 아이템 컴팩트화 */
+    .routine-split .habit-item { margin-bottom: 6px; }
+    .routine-split .habit-row { padding: 10px 12px; gap: 10px; }
+    .routine-split .habit-emoji { font-size: 16px; }
+    .routine-split .habit-name { font-size: 13px; }
+    .routine-split .habit-time { font-size: 9px; }
+    .routine-split .checkbox { width: 20px; height: 20px; }
+    .routine-split .check-icon { font-size: 11px; }
+    .routine-split .section-label { margin-bottom: 8px; margin-top: 4px; }
+    /* 분할 영역 안 챌린지 컴팩트화 */
+    .routine-split .plus-card { margin-bottom: 8px; }
+    .routine-split .plus-card-head { padding: 12px; }
+    .routine-split .plus-card-name { font-size: 14px; }
+    .routine-split .plus-today-num { font-size: 18px; }
+    .routine-split .plus-add-btn { padding: 10px; font-size: 12px; }
+
     .header::before {
       content: ''; position: absolute; top: -80px; left: -60px;
       width: 240px; height: 240px;
@@ -1009,7 +1046,7 @@
       transform:scale(0.92); transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
     }
     .confirm-overlay.show .confirm-box { transform:scale(1); }
-    .confirm-msg { font-size:14px; color:#ccc; text-align:center; margin-bottom:20px; line-height:1.7; }
+    .confirm-msg { font-size:14px; color:#ccc; text-align:center; margin-bottom:20px; line-height:1.7; white-space:pre-line; }
     .confirm-actions { display:flex; gap:10px; }
     .confirm-cancel { flex:1; padding:11px; border-radius:12px; border:1px solid var(--border); background:none; color:var(--muted); font-family:'Noto Serif KR',serif; font-size:13px; cursor:pointer; }
     .confirm-ok { flex:1; padding:11px; border-radius:12px; border:none; background:#ef4444; color:white; font-family:'Noto Serif KR',serif; font-size:13px; cursor:pointer; }
@@ -1050,6 +1087,8 @@
     /* SMOOTH PAGE TRANSITIONS */
     .page { display:none; padding-bottom:80px; opacity:0; transition:opacity 0.2s ease; }
     .page.active { display:block; opacity:1; }
+    #page-race { padding-bottom:0; }
+    #page-race #race-root > div { min-height:calc(100vh - 60px) !important; }
 
     /* IMPROVED HABIT ITEM HOVER */
     .habit-item { transition: all 0.2s ease, transform 0.15s ease; }
@@ -1213,77 +1252,89 @@
       </div>
       <button class="routine-nav-btn" onclick="routineNav(1)">›</button>
     </div>
-    <div class="title">매일 루틴</div>
+    <div class="progress-section" style="border-bottom:none;padding:10px 0 0;">
+      <div class="progress-header">
+        <div class="progress-label" id="progressLabel">오늘의 진행</div>
+        <div class="progress-count" id="progressCount">0 / 4</div>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+    </div>
     <div class="streak-row">
       <div class="streak-badge" id="streakBadge">🔥 0일 연속</div>
       <div class="streak-text" id="streakText">오늘부터 시작</div>
     </div>
   </div>
-  <div class="progress-section">
-    <div class="progress-header">
-      <div class="progress-label" id="progressLabel">오늘의 진행</div>
-      <div class="progress-count" id="progressCount">0 / 7</div>
+
+  <!-- 가로 분할 영역 -->
+  <div class="routine-split">
+    <!-- 왼쪽: 루틴 -->
+    <div class="routine-split-left">
+      <div class="split-panel-label">☀️ 루틴</div>
+      <div class="habits-section" style="padding:8px 12px;">
+        <div class="section-label">아침</div>
+        <div class="habit-item" data-cat="anchor" data-id="wake">
+          <div class="habit-row" onclick="toggle(this.parentElement, event)">
+            <div class="habit-emoji">🌙</div>
+            <div class="habit-info"><div class="habit-time">04:00</div><div class="habit-name">기상</div></div>
+            <button class="note-btn" onclick="toggleNote(event, 'wake')" title="메모">✏️</button>
+            <div class="checkbox"><span class="check-icon">✓</span></div>
+          </div>
+          <div class="habit-note-area" id="note-wake">
+            <textarea class="habit-note-input" placeholder="오늘 컨디션, 기분..." oninput="saveNote('wake', this.value)" onclick="event.stopPropagation()"></textarea>
+          </div>
+        </div>
+        <div class="habit-item" data-cat="move" data-id="exercise">
+          <div class="habit-row" onclick="toggle(this.parentElement, event)">
+            <div class="habit-emoji">🏋️</div>
+            <div class="habit-info"><div class="habit-time">04:30</div><div class="habit-name">운동</div></div>
+            <button class="note-btn" onclick="toggleNote(event, 'exercise')" title="메모">✏️</button>
+            <div class="checkbox"><span class="check-icon">✓</span></div>
+          </div>
+          <div class="habit-note-area" id="note-exercise">
+            <textarea class="habit-note-input" placeholder="오늘 운동 내용, 컨디션..." oninput="saveNote('exercise', this.value)" onclick="event.stopPropagation()"></textarea>
+          </div>
+        </div>
+        <div class="section-label" style="margin-top:12px">저녁</div>
+        <div class="habit-item" data-cat="rest" data-id="reading">
+          <div class="habit-row" onclick="toggle(this.parentElement, event)">
+            <div class="habit-emoji">📚</div>
+            <div class="habit-info"><div class="habit-time">20:30</div><div class="habit-name">독서</div></div>
+            <button class="note-btn" onclick="toggleNote(event, 'reading')" title="메모">✏️</button>
+            <div class="checkbox"><span class="check-icon">✓</span></div>
+          </div>
+          <div class="habit-note-area" id="note-reading">
+            <textarea class="habit-note-input" placeholder="오늘 읽은 책, 인상 깊은 문장..." oninput="saveNote('reading', this.value)" onclick="event.stopPropagation()"></textarea>
+          </div>
+        </div>
+        <div class="habit-item" data-cat="create" data-id="writing">
+          <div class="habit-row" onclick="toggle(this.parentElement, event)">
+            <div class="habit-emoji">✍️</div>
+            <div class="habit-info"><div class="habit-time">21:00</div><div class="habit-name">글</div></div>
+            <button class="note-btn" onclick="toggleNote(event, 'writing')" title="메모">✏️</button>
+            <div class="checkbox"><span class="check-icon">✓</span></div>
+          </div>
+          <div class="habit-note-area" id="note-writing">
+            <textarea class="habit-note-input" placeholder="오늘 쓴 내용, 소설 아이디어..." oninput="saveNote('writing', this.value)" onclick="event.stopPropagation()"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="calendar-section" style="padding:8px 12px 12px;">
+        <div class="section-label">이번 주</div>
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
     </div>
-    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
-  </div>
-  <div class="habits-section">
-    <div class="section-label">아침</div>
-    <div class="habit-item" data-cat="anchor" data-id="wake">
-      <div class="habit-row" onclick="toggle(this.parentElement, event)">
-        <div class="habit-emoji">🌙</div>
-        <div class="habit-info"><div class="habit-time">04:00</div><div class="habit-name">기상</div></div>
-        <button class="note-btn" onclick="toggleNote(event, 'wake')" title="메모">✏️</button>
-        <div class="checkbox"><span class="check-icon">✓</span></div>
-      </div>
-      <div class="habit-note-area" id="note-wake">
-        <textarea class="habit-note-input" placeholder="오늘 컨디션, 기분..." oninput="saveNote('wake', this.value)" onclick="event.stopPropagation()"></textarea>
-      </div>
+
+    <!-- 오른쪽: 하루 더하기 -->
+    <div class="routine-split-right">
+      <div class="split-panel-label">➕ 하루 더하기</div>
+      <div class="plus-challenge-list" id="plusList" style="padding:8px 12px;"></div>
     </div>
-    <div class="habit-item" data-cat="move" data-id="exercise">
-      <div class="habit-row" onclick="toggle(this.parentElement, event)">
-        <div class="habit-emoji">🏋️</div>
-        <div class="habit-info"><div class="habit-time">04:30</div><div class="habit-name">운동</div></div>
-        <button class="note-btn" onclick="toggleNote(event, 'exercise')" title="메모">✏️</button>
-        <div class="checkbox"><span class="check-icon">✓</span></div>
-      </div>
-      <div class="habit-note-area" id="note-exercise">
-        <textarea class="habit-note-input" placeholder="오늘 운동 내용, 컨디션..." oninput="saveNote('exercise', this.value)" onclick="event.stopPropagation()"></textarea>
-      </div>
-    </div>
-    <div class="section-label" style="margin-top:20px">저녁</div>
-    <div class="habit-item" data-cat="rest" data-id="reading">
-      <div class="habit-row" onclick="toggle(this.parentElement, event)">
-        <div class="habit-emoji">📚</div>
-        <div class="habit-info"><div class="habit-time">20:30</div><div class="habit-name">독서</div></div>
-        <button class="note-btn" onclick="toggleNote(event, 'reading')" title="메모">✏️</button>
-        <div class="checkbox"><span class="check-icon">✓</span></div>
-      </div>
-      <div class="habit-note-area" id="note-reading">
-        <textarea class="habit-note-input" placeholder="오늘 읽은 책, 인상 깊은 문장..." oninput="saveNote('reading', this.value)" onclick="event.stopPropagation()"></textarea>
-      </div>
-    </div>
-    <div class="habit-item" data-cat="create" data-id="writing">
-      <div class="habit-row" onclick="toggle(this.parentElement, event)">
-        <div class="habit-emoji">✍️</div>
-        <div class="habit-info"><div class="habit-time">21:00</div><div class="habit-name">글</div></div>
-        <button class="note-btn" onclick="toggleNote(event, 'writing')" title="메모">✏️</button>
-        <div class="checkbox"><span class="check-icon">✓</span></div>
-      </div>
-      <div class="habit-note-area" id="note-writing">
-        <textarea class="habit-note-input" placeholder="오늘 쓴 내용, 소설 아이디어..." oninput="saveNote('writing', this.value)" onclick="event.stopPropagation()"></textarea>
-      </div>
-    </div>
-  </div>
-  <div class="calendar-section">
-    <div class="section-label">이번 주</div>
-    <div class="week-grid" id="weekGrid"></div>
   </div>
 
-  <!-- GOOGLE DRIVE SYNC -->
+  <!-- 하단: 동기화 + 초기화 (전체 폭) -->
   <div class="sync-section">
     <div class="section-label">☁️ GOOGLE DRIVE 동기화</div>
     <div class="sync-card" id="syncCard">
-      <!-- 설정 전: Client ID 입력 -->
       <div id="syncSetup">
         <div class="sync-setup-note">
           Google Drive에 데이터를 저장하면<br>여러 기기에서 동기화할 수 있어.<br><br>
@@ -1304,8 +1355,6 @@
         <button class="sync-id-save" onclick="gdSaveClientId()">저장</button>
         <div style="clear:both;"></div>
       </div>
-
-      <!-- 설정 후: 동기화 UI -->
       <div id="syncMain" style="display:none;">
         <div class="sync-header">
           <div class="sync-header-icon">☁️</div>
@@ -1314,15 +1363,11 @@
             <div class="sync-header-status" id="syncStatus">로그인 필요</div>
           </div>
         </div>
-
-        <!-- 미로그인 -->
         <div id="syncLoggedOut">
           <button class="sync-login-btn" onclick="gdSignIn()">
             <span style="font-size:16px;">🔑</span> Google 계정으로 로그인
           </button>
         </div>
-
-        <!-- 로그인됨 -->
         <div id="syncLoggedIn" style="display:none;">
           <div class="sync-actions">
             <button class="sync-btn upload" id="syncUpBtn" onclick="gdUpload()">☁️↑ 업로드</button>
@@ -1337,7 +1382,6 @@
       </div>
     </div>
   </div>
-
   <div class="reset-section">
     <button class="reset-btn" onclick="resetToday()">오늘 초기화</button>
     <button class="reset-btn" style="color:#ef4444;border-color:#ef444444;" onclick="resetAllData()">전체 데이터 초기화</button>
@@ -1356,16 +1400,6 @@
     <div class="memo-count-label" id="memoCount">0개</div>
   </div>
   <div class="memo-list" id="memoList"></div>
-</div>
-
-<!-- ====== 하루 더하기 PAGE ====== -->
-<div class="page" id="page-plus">
-  <div class="page-header">
-    <div class="date-label">DAILY +1</div>
-    <div class="page-title">하루 더하기</div>
-    <div class="page-sub">매일 하나씩 더한다</div>
-  </div>
-  <div class="plus-challenge-list" id="plusList"></div>
 </div>
 
 <!-- ADD CHALLENGE MODAL -->
@@ -1425,11 +1459,11 @@
   <button class="tab-btn" id="tab-routine" onclick="switchTab('routine')">
     <span class="tab-icon">☀️</span><span class="tab-label">루틴</span>
   </button>
-  <button class="tab-btn" id="tab-plus" onclick="switchTab('plus')">
-    <span class="tab-icon">➕</span><span class="tab-label">더하기</span>
-  </button>
   <button class="tab-btn" id="tab-book" onclick="switchTab('book')">
     <span class="tab-icon">📖</span><span class="tab-label">완독</span>
+  </button>
+  <button class="tab-btn" id="tab-race" onclick="switchTab('race')">
+    <span class="tab-icon">🏃</span><span class="tab-label">레이스</span>
   </button>
   <button class="tab-btn" id="tab-nature" onclick="switchTab('nature')">
     <span class="tab-icon">🌿</span><span class="tab-label">수확</span>
@@ -1468,6 +1502,11 @@
     </div>
   </div>
   <div class="book-list-section" id="bk-list"></div>
+</div>
+
+<!-- ====== 레이스 PAGE ====== -->
+<div class="page" id="page-race">
+  <div id="race-root"></div>
 </div>
 
 <!-- ====== 수확 PAGE ====== -->
@@ -1976,19 +2015,23 @@
 
   /* ── TABS ── */
   let currentTab = 'cal';
+  let _tabSwitchTimer = null;
   function switchTab(tab) {
     if(tab === currentTab) return;
+    if(_tabSwitchTimer) { clearTimeout(_tabSwitchTimer); _tabSwitchTimer = null; }
     const prevPage = document.getElementById('page-'+currentTab);
     if(prevPage) { prevPage.style.opacity = '0'; }
-    setTimeout(() => {
+    currentTab = tab;
+    _tabSwitchTimer = setTimeout(() => {
+      _tabSwitchTimer = null;
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       const newPage = document.getElementById('page-'+tab);
       if(newPage) { newPage.classList.add('active'); requestAnimationFrame(() => { newPage.style.opacity = '1'; }); }
       document.getElementById('tab-'+tab)?.classList.add('active');
-      currentTab = tab;
       if(tab==='memo') renderMemoList();
-      if(tab==='plus') renderPlusPage();
+      if(tab==='routine') { routineLoadDate(); renderPlusPage(); }
+      if(tab==='race') window._mountRaceApp?.();
       if(tab==='lotto') ltUpdateHeader();
       if(tab==='cal') calRender();
       if(tab==='book') bkRender();
@@ -2161,11 +2204,15 @@
       'bkBooks',
       'harvestData','harvestLogs','growthLogs','sowingRecords',
       'wxLocation',
-      'ws_lotto:data2',
+      'ws_lotto:data2','ltHistory',
+      'ws_race-records','ws_race-bookmarks','ws_race-fetched',
       'gdrive_last_sync'
     ];
     keys.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
     try { await window.storage.delete('lotto:data2'); } catch(e) {}
+    try { await window.storage.delete('race-records'); } catch(e) {}
+    try { await window.storage.delete('race-bookmarks'); } catch(e) {}
+    try { await window.storage.delete('race-fetched'); } catch(e) {}
     showToast('전체 데이터가 초기화됐어');
     setTimeout(() => location.reload(), 800);
   }
@@ -2201,9 +2248,6 @@
     document.getElementById('progressLabel').textContent = isToday ? '오늘의 진행' : `${vd.getMonth()+1}/${vd.getDate()} 진행`;
 
     // 미래 날짜는 내비 버튼 비활성화
-    const tomorrow = addDays(todayKey(), 1);
-    const nextBtn = document.querySelector('.routine-nav-btn:last-child');
-
     renderWeek();
   }
   function renderWeek() {
@@ -2250,6 +2294,7 @@
     });
     loadNotes();
     updateUI();
+    renderPlusPage();
   }
 
   /* ── NOTIFICATIONS (비활성화됨) ── */
@@ -2649,6 +2694,10 @@
   const LT_BASE_LAST = 1214;
   let ltFreq = null, ltLast = LT_BASE_LAST, ltHistory = [], ltUpdOpen = false, ltUpdating = false;
 
+  // ltHistory 저장/불러오기
+  function ltLoadHistory() { ltHistory = safeJSONParse(localStorage.getItem('ltHistory'), []); }
+  function ltSaveHistory() { safeSetItem('ltHistory', JSON.stringify(ltHistory.slice(0, 20))); }
+
   function ltCalcExpected() {
     return Math.floor((new Date() - new Date("2002-12-07T11:35:00Z")) / (7*24*60*60*1000)) + 1;
   }
@@ -2717,6 +2766,7 @@
     if(!ltFreq)return;
     const {nums,tries}=ltSmartPick();
     ltHistory=[{nums,id:Date.now()},...ltHistory].slice(0,20);
+    ltSaveHistory();
     // result box
     const box=document.getElementById('lt-result-box');
     box.style.borderColor="#f59e0b44";
@@ -2750,7 +2800,7 @@
       </div>`).join('');
   }
 
-  function ltClearHistory(){ltHistory=[];document.getElementById('lt-history').style.display="none";}
+  function ltClearHistory(){ltHistory=[];ltSaveHistory();document.getElementById('lt-history').style.display="none";}
 
   function ltToggleUpdate(){
     ltUpdOpen=!ltUpdOpen;
@@ -2758,14 +2808,32 @@
     document.getElementById('lt-update-arrow').style.transform=ltUpdOpen?"rotate(180deg)":"none";
   }
 
-  // CORS 프록시 다중 폴백
-  async function fetchWithCorsProxy(targetUrl, timeout = 10000) {
+  // CORS 프록시 다중 폴백 (각 프록시별 응답 형식 처리)
+  async function fetchWithCorsProxy(targetUrl, timeout = 12000) {
     const proxies = [
-      { name: 'allorigins', fn: url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
-      { name: 'corsproxy', fn: url => `https://corsproxy.io/?url=${encodeURIComponent(url)}` },
-      { name: 'thingproxy', fn: url => `https://thingproxy.freeboard.io/fetch/${url}` },
-      { name: 'codetabs', fn: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}` },
-      { name: 'cors.sh', fn: url => `https://proxy.cors.sh/${url}` },
+      {
+        name: 'allorigins',
+        url: url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        parse: async (res) => {
+          const json = await res.json();
+          return json.contents; // allorigins /get은 {contents: "원본텍스트"} 형식
+        }
+      },
+      {
+        name: 'allorigins-raw',
+        url: url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        parse: async (res) => await res.text()
+      },
+      {
+        name: 'codetabs',
+        url: url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        parse: async (res) => await res.text()
+      },
+      {
+        name: 'thingproxy',
+        url: url => `https://thingproxy.freeboard.io/fetch/${url}`,
+        parse: async (res) => await res.text()
+      },
     ];
 
     // 1차: 직접 호출
@@ -2786,21 +2854,27 @@
       try {
         const controller = new AbortController();
         const tid = setTimeout(() => controller.abort(), timeout);
-        const res = await fetch(proxy.fn(targetUrl), { signal: controller.signal });
+        const res = await fetch(proxy.url(targetUrl), {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json, text/plain, */*' }
+        });
         clearTimeout(tid);
-        if(res.ok) {
-          const text = await res.text();
-          if(text && text.trim().startsWith('{')) return text;
-          errors.push(`${proxy.name}: 응답이 JSON이 아님`);
-        } else {
-          errors.push(`${proxy.name}: HTTP ${res.status}`);
+        if(!res.ok) { errors.push(`${proxy.name}: HTTP ${res.status}`); continue; }
+
+        const text = await proxy.parse(res);
+        if(text && typeof text === 'string' && text.trim().startsWith('{')) {
+          // 유효한 JSON 응답
+          JSON.parse(text); // 파싱 가능한지 검증
+          return text;
         }
+        errors.push(`${proxy.name}: 응답이 JSON이 아님`);
       } catch(e) {
-        errors.push(`${proxy.name}: ${e.name === 'AbortError' ? '시간초과' : e.message}`);
+        const msg = e.name === 'AbortError' ? '시간초과' : e.message?.substring(0,40) || '알 수 없는 오류';
+        errors.push(`${proxy.name}: ${msg}`);
         continue;
       }
     }
-    throw new Error('프록시 연결 실패 (' + errors.slice(0,2).join(', ') + ')');
+    throw new Error('프록시 연결 실패 (' + errors.slice(0,3).join(', ') + ')');
   }
 
   async function ltRunUpdate(){
@@ -2852,7 +2926,7 @@
     const ok = await showConfirm('로또 데이터를 초기화할까?\n모든 업데이트가 리셋돼.', '초기화');
     if(!ok) return;
     try{await window.storage.delete("lotto:data2");}catch{}
-    ltFreq={...LT_BASE_FREQ};ltLast=LT_BASE_LAST;ltHistory=[];
+    ltFreq={...LT_BASE_FREQ};ltLast=LT_BASE_LAST;ltHistory=[];ltSaveHistory();
     document.getElementById('lt-result-box').style.borderColor="#1e1e2e";
     document.getElementById('lt-result-box').innerHTML='<p style="color:#2a2a3a;font-size:13px;">아래 버튼을 눌러 번호를 추첨하세요</p>';
     document.getElementById('lt-filter-box').style.display="none";
@@ -2865,7 +2939,9 @@
 
   async function ltInit(){
     await ltLoadData();
+    ltLoadHistory();
     ltUpdateHeader();
+    ltRenderHistory();
   }
 
   /* ── 일정 캘린더 ── */
@@ -3256,12 +3332,11 @@
       if(_wxIntervalId) { clearInterval(_wxIntervalId); _wxIntervalId = null; }
     } else {
       wxAutoRefresh();
-      // 날짜가 바뀌었을 수 있으니 체크
-      const stored = document.getElementById('dateLabel')?.textContent || '';
-      const d = new Date();
-      const mo = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-      const expected = `${d.getFullYear()}년 ${mo[d.getMonth()]} ${d.getDate()}일`;
-      if(stored !== expected) location.reload();
+      // 날짜가 바뀌었을 수 있으니 체크 (자정 지남 감지)
+      if(window._lastTodayKey && window._lastTodayKey !== todayKey()) {
+        location.reload();
+      }
+      window._lastTodayKey = todayKey();
     }
   });
 
@@ -3512,7 +3587,7 @@
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;position:absolute;top:10px;right:10px;" onclick="event.stopPropagation()">
           <button class="book-del" style="position:static;color:#444;" onclick="bkOpenModal('${escAttr(b.id)}')">✏️</button>
-          <button class="book-del" style="position:static;" onclick="bkDelete('${b.id}')">×</button>
+          <button class="book-del" style="position:static;" onclick="bkDelete('${escAttr(b.id)}')">×</button>
         </div>
       </div>`;
   }
@@ -4485,7 +4560,9 @@
     'plusChallenges','plusChecks',
     'calEvents','calEvtDone',
     'bkBooks',
-    'harvestData','harvestLogs','growthLogs','sowingRecords'
+    'harvestData','harvestLogs','growthLogs','sowingRecords',
+    'ltHistory',
+    'ws_race-records','ws_race-bookmarks','ws_race-fetched'
   ];
 
   let gdTokenClient = null;
@@ -4735,8 +4812,10 @@
 
   /* ── INIT ── */
   function init() {
+    window._lastTodayKey = todayKey();
     routineViewDate = todayKey();
     routineLoadDate();
+    renderPlusPage();
     scheduleAllNotifs();
     ltInit();
     calInit();
@@ -4755,6 +4834,2784 @@
   }
 
   init();
+</script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+const {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useCallback
+} = React;
+
+/* ──────────────────────── DATA ──────────────────────── */
+const DEFAULT_RACES = [{
+  id: 1,
+  name: "대구국제마라톤",
+  date: "2026-02-22",
+  location: "대구 도심",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "90m",
+  fee: "₩50,000",
+  region: "경상",
+  distances: ["풀코스", "10km"]
+}, {
+  id: 2,
+  name: "서울마라톤 (동아)",
+  date: "2026-03-15",
+  location: "서울 광화문",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "120m",
+  fee: "₩80,000",
+  region: "서울",
+  distances: ["풀코스", "10km"]
+}, {
+  id: 3,
+  name: "남해 트레일레이스",
+  date: "2026-03-21",
+  location: "경남 남해",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "2,800m",
+  fee: "₩70,000",
+  region: "경상",
+  distances: ["50km", "30km", "15km"]
+}, {
+  id: 4,
+  name: "지리산 봄꽃레이스",
+  date: "2026-03-21",
+  location: "전북 남원",
+  type: "trail",
+  distance: "30km",
+  difficulty: 3,
+  elevation: "1,600m",
+  fee: "₩55,000",
+  region: "전라",
+  distances: ["30km", "15km"]
+}, {
+  id: 5,
+  name: "JUST RUN10 청주",
+  date: "2026-03-21",
+  location: "충북 무심천",
+  type: "road",
+  distance: "10km",
+  difficulty: 1,
+  elevation: "40m",
+  fee: "₩30,000",
+  region: "충청",
+  distances: ["10km", "5km"]
+}, {
+  id: 6,
+  name: "여수 진달래 트레일레이스",
+  date: "2026-03-28",
+  location: "전남 여수",
+  type: "trail",
+  distance: "25km",
+  difficulty: 3,
+  elevation: "1,200m",
+  fee: "₩50,000",
+  region: "전라",
+  distances: ["25km", "12km"]
+}, {
+  id: 7,
+  name: "장수 트레일레이스 Spring",
+  date: "2026-04-03",
+  location: "전북 장수",
+  type: "trail",
+  distance: "70km",
+  difficulty: 5,
+  elevation: "4,200m",
+  fee: "₩90,000",
+  region: "전라",
+  distances: ["70km", "42km", "21km"]
+}, {
+  id: 8,
+  name: "경기국제하프마라톤",
+  date: "2026-04-05",
+  location: "경기 고양시",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "65m",
+  fee: "₩40,000",
+  region: "경기",
+  distances: ["하프", "10km"]
+}, {
+  id: 9,
+  name: "경주 벚꽃 마라톤",
+  date: "2026-04-05",
+  location: "경주 보문호",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "85m",
+  fee: "₩40,000",
+  region: "경상",
+  distances: ["하프", "10km", "5km"]
+}, {
+  id: 10,
+  name: "제주국제트레일러닝 Stage100",
+  date: "2026-04-10",
+  location: "제주도",
+  type: "trail",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "5,500m",
+  fee: "₩150,000",
+  region: "제주",
+  distances: ["100km(3일)", "50km", "20km"]
+}, {
+  id: 11,
+  name: "개화산 트레일러닝",
+  date: "2026-04-18",
+  location: "서울 강서구",
+  type: "trail",
+  distance: "7km",
+  difficulty: 1,
+  elevation: "350m",
+  fee: "₩30,000",
+  region: "서울",
+  distances: ["7km"]
+}, {
+  id: 12,
+  name: "KONOL TRAIL RUN",
+  date: "2026-04-18",
+  location: "강원 홍천",
+  type: "trail",
+  distance: "42km",
+  difficulty: 4,
+  elevation: "2,600m",
+  fee: "₩65,000",
+  region: "강원",
+  distances: ["42km", "21km", "10km"]
+}, {
+  id: 13,
+  name: "무등산 트레일런 (봄)",
+  date: "2026-04-19",
+  location: "광주 무등산",
+  type: "trail",
+  distance: "25km",
+  difficulty: 3,
+  elevation: "1,500m",
+  fee: "₩50,000",
+  region: "전라",
+  distances: ["25km", "15km"]
+}, {
+  id: 14,
+  name: "전주 마라톤",
+  date: "2026-04-19",
+  location: "전북 전주",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "130m",
+  fee: "₩45,000",
+  region: "전라",
+  distances: ["풀코스", "하프", "10km", "5km"]
+}, {
+  id: 15,
+  name: "2026 SKYRUN",
+  date: "2026-04-19",
+  location: "서울 롯데월드타워",
+  type: "trail",
+  distance: "2,917계단",
+  difficulty: 4,
+  elevation: "555m",
+  fee: "₩60,000",
+  region: "서울",
+  distances: ["123층(2,917계단)"]
+}, {
+  id: 16,
+  name: "KOREA50K 동두천",
+  date: "2026-04-25",
+  location: "경기 동두천",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "3,100m",
+  fee: "₩75,000",
+  region: "경기",
+  distances: ["50km", "30km"]
+}, {
+  id: 17,
+  name: "블랙야크 트레일런 제주",
+  date: "2026-04-25",
+  location: "제주도",
+  type: "trail",
+  distance: "30km",
+  difficulty: 3,
+  elevation: "1,800m",
+  fee: "₩60,000",
+  region: "제주",
+  distances: ["30km", "15km", "7km"]
+}, {
+  id: 18,
+  name: "서울하프마라톤 (조선일보)",
+  date: "2026-04-26",
+  location: "서울 광화문",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "75m",
+  fee: "₩50,000",
+  region: "서울",
+  distances: ["하프", "10km"]
+}, {
+  id: 19,
+  name: "홍천 트레일러닝대회",
+  date: "2026-04-26",
+  location: "강원 홍천",
+  type: "trail",
+  distance: "21km",
+  difficulty: 3,
+  elevation: "1,100m",
+  fee: "₩45,000",
+  region: "강원",
+  distances: ["21km", "10km"]
+}, {
+  id: 20,
+  name: "장수트레일투어 STAGE100K",
+  date: "2026-05-01",
+  location: "전북 장수",
+  type: "trail",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "6,000m",
+  fee: "₩180,000",
+  region: "전라",
+  distances: ["100km(3일)"]
+}, {
+  id: 21,
+  name: "부산50K",
+  date: "2026-05-09",
+  location: "부산 금정산",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "3,200m",
+  fee: "₩70,000",
+  region: "경상",
+  distances: ["50km", "37km", "24km", "12km"]
+}, {
+  id: 22,
+  name: "동해 스카이레이스",
+  date: "2026-05-09",
+  location: "강원 동해",
+  type: "trail",
+  distance: "35km",
+  difficulty: 4,
+  elevation: "2,400m",
+  fee: "₩65,000",
+  region: "강원",
+  distances: ["35km", "20km"]
+}, {
+  id: 23,
+  name: "무의도 구석구석 트레일런",
+  date: "2026-05-10",
+  location: "인천 무의도",
+  type: "trail",
+  distance: "20km",
+  difficulty: 2,
+  elevation: "900m",
+  fee: "₩45,000",
+  region: "경기",
+  distances: ["20km", "10km"]
+}, {
+  id: 24,
+  name: "TNF100 (노스페이스100)",
+  date: "2026-05-16",
+  location: "강원 인제",
+  type: "trail",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "5,800m",
+  fee: "₩130,000",
+  region: "강원",
+  distances: ["100km", "50km"]
+}, {
+  id: 25,
+  name: "옥스팜 트레일워커",
+  date: "2026-05-16",
+  location: "경기 양평",
+  type: "trail",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "4,500m",
+  fee: "₩100,000",
+  region: "경기",
+  distances: ["100km(4인1팀)"]
+}, {
+  id: 26,
+  name: "제주국제마라톤",
+  date: "2026-05-17",
+  location: "제주 서귀포",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "200m",
+  fee: "₩55,000",
+  region: "제주",
+  distances: ["풀코스", "하프", "10km"]
+}, {
+  id: 27,
+  name: "춘천 마라톤",
+  date: "2026-05-24",
+  location: "강원 춘천",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "210m",
+  fee: "₩45,000",
+  region: "강원",
+  distances: ["풀코스", "하프", "10km", "5km"]
+}, {
+  id: 28,
+  name: "TransJeju by UTMB",
+  date: "2026-05-29",
+  location: "제주 한라산",
+  type: "trail",
+  distance: "110km",
+  difficulty: 5,
+  elevation: "6,500m",
+  fee: "₩150,000",
+  region: "제주",
+  distances: ["111km", "55km", "25km"]
+}, {
+  id: 29,
+  name: "삼삼 트레일런",
+  date: "2026-05-30",
+  location: "경기 가평",
+  type: "trail",
+  distance: "33km",
+  difficulty: 3,
+  elevation: "1,800m",
+  fee: "₩55,000",
+  region: "경기",
+  distances: ["33km", "16km"]
+}, {
+  id: 30,
+  name: "거제100K",
+  date: "2026-05-30",
+  location: "경남 거제",
+  type: "trail",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "5,000m",
+  fee: "₩100,000",
+  region: "경상",
+  distances: ["100km", "60km", "30km"]
+}, {
+  id: 31,
+  name: "성남누비길 SNTR",
+  date: "2026-06-06",
+  location: "경기 성남",
+  type: "trail",
+  distance: "21km",
+  difficulty: 3,
+  elevation: "1,200m",
+  fee: "₩45,000",
+  region: "경기",
+  distances: ["21km", "10km"]
+}, {
+  id: 32,
+  name: "IM뱅크 코리아오픈마라톤",
+  date: "2026-06-07",
+  location: "서울 여의도",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "50m",
+  fee: "₩40,000",
+  region: "서울",
+  distances: ["하프", "10km", "5km"]
+}, {
+  id: 33,
+  name: "제주오름트레일 (골든트레일)",
+  date: "2026-06-13",
+  location: "제주도",
+  type: "trail",
+  distance: "45km",
+  difficulty: 4,
+  elevation: "2,800m",
+  fee: "₩80,000",
+  region: "제주",
+  distances: ["45km", "25km", "15km"]
+}, {
+  id: 34,
+  name: "운탄고도 스카이레이스",
+  date: "2026-06-13",
+  location: "강원 정선·태백",
+  type: "trail",
+  distance: "40km",
+  difficulty: 4,
+  elevation: "2,600m",
+  fee: "₩65,000",
+  region: "강원",
+  distances: ["40km", "25km"]
+}, {
+  id: 35,
+  name: "수원 트레일레이스",
+  date: "2026-06-14",
+  location: "경기 수원",
+  type: "trail",
+  distance: "15km",
+  difficulty: 2,
+  elevation: "600m",
+  fee: "₩40,000",
+  region: "경기",
+  distances: ["15km", "8km"]
+}, {
+  id: 36,
+  name: "KOREA50K CC 춘천",
+  date: "2026-06-28",
+  location: "강원 춘천",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "3,000m",
+  fee: "₩70,000",
+  region: "강원",
+  distances: ["50km", "30km"]
+}, {
+  id: 37,
+  name: "안산·인왕산·북악산 트레일런",
+  date: "2026-07-05",
+  location: "서울 서대문",
+  type: "trail",
+  distance: "11km",
+  difficulty: 2,
+  elevation: "600m",
+  fee: "₩35,000",
+  region: "서울",
+  distances: ["11km", "6km"]
+}, {
+  id: 38,
+  name: "울릉도 국제 트레일러닝",
+  date: "2026-07-12",
+  location: "경북 울릉도",
+  type: "trail",
+  distance: "40km",
+  difficulty: 4,
+  elevation: "2,800m",
+  fee: "₩85,000",
+  region: "경상",
+  distances: ["40km", "21km", "10km"]
+}, {
+  id: 39,
+  name: "청계산·인릉산 트레일런",
+  date: "2026-07-19",
+  location: "서울 서초",
+  type: "trail",
+  distance: "21km",
+  difficulty: 3,
+  elevation: "1,100m",
+  fee: "₩45,000",
+  region: "서울",
+  distances: ["하프", "8km"]
+}, {
+  id: 40,
+  name: "울트라트레일 계양산 백야드",
+  date: "2026-07-25",
+  location: "인천 계양",
+  type: "trail",
+  distance: "백야드",
+  difficulty: 5,
+  elevation: "-",
+  fee: "₩80,000",
+  region: "경기",
+  distances: ["6.7km 루프(백야드)"]
+}, {
+  id: 41,
+  name: "쿨밸리 트레일레이스",
+  date: "2026-08-01",
+  location: "강원 인제",
+  type: "trail",
+  distance: "30km",
+  difficulty: 3,
+  elevation: "1,800m",
+  fee: "₩55,000",
+  region: "강원",
+  distances: ["30km", "15km"]
+}, {
+  id: 42,
+  name: "김천 청심 스카이런",
+  date: "2026-08-16",
+  location: "경북 김천",
+  type: "trail",
+  distance: "20km",
+  difficulty: 3,
+  elevation: "1,200m",
+  fee: "₩45,000",
+  region: "경상",
+  distances: ["20km", "10km"]
+}, {
+  id: 43,
+  name: "대관령 트레일런",
+  date: "2026-08-22",
+  location: "강원 평창",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "2,900m",
+  fee: "₩70,000",
+  region: "강원",
+  distances: ["50km", "30km", "15km"]
+}, {
+  id: 44,
+  name: "금수산 전국산악마라톤",
+  date: "2026-08-23",
+  location: "충북 제천",
+  type: "trail",
+  distance: "21km",
+  difficulty: 3,
+  elevation: "1,100m",
+  fee: "₩40,000",
+  region: "충청",
+  distances: ["21km", "10km"]
+}, {
+  id: 45,
+  name: "다이나핏 태백 트레일",
+  date: "2026-09-05",
+  location: "강원 태백",
+  type: "trail",
+  distance: "42km",
+  difficulty: 4,
+  elevation: "2,500m",
+  fee: "₩65,000",
+  region: "강원",
+  distances: ["42km", "21km", "10km"]
+}, {
+  id: 46,
+  name: "지리산 릿지레이스",
+  date: "2026-09-05",
+  location: "전남 구례",
+  type: "trail",
+  distance: "65km",
+  difficulty: 5,
+  elevation: "4,200m",
+  fee: "₩95,000",
+  region: "전라",
+  distances: ["65km", "35km"]
+}, {
+  id: 47,
+  name: "인천송도 국제마라톤",
+  date: "2026-09-06",
+  location: "인천 송도",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "50m",
+  fee: "₩50,000",
+  region: "경기",
+  distances: ["풀코스", "하프", "10km"]
+}, {
+  id: 48,
+  name: "구미 에코 트레일레이스",
+  date: "2026-09-12",
+  location: "경북 구미",
+  type: "trail",
+  distance: "25km",
+  difficulty: 3,
+  elevation: "1,300m",
+  fee: "₩45,000",
+  region: "경상",
+  distances: ["25km", "12km"]
+}, {
+  id: 49,
+  name: "치악산 트레일러닝대회",
+  date: "2026-09-12",
+  location: "강원 원주",
+  type: "trail",
+  distance: "35km",
+  difficulty: 4,
+  elevation: "2,200m",
+  fee: "₩60,000",
+  region: "강원",
+  distances: ["35km", "20km", "10km"]
+}, {
+  id: 50,
+  name: "광주 하프마라톤",
+  date: "2026-09-13",
+  location: "광주 도심",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "55m",
+  fee: "₩35,000",
+  region: "전라",
+  distances: ["하프", "10km", "5km"]
+}, {
+  id: 51,
+  name: "부산 해변 마라톤",
+  date: "2026-09-20",
+  location: "부산 해운대",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "60m",
+  fee: "₩40,000",
+  region: "경상",
+  distances: ["하프", "10km", "5km"]
+}, {
+  id: 52,
+  name: "완주 트레일런",
+  date: "2026-09-26",
+  location: "전북 완주",
+  type: "trail",
+  distance: "25km",
+  difficulty: 3,
+  elevation: "1,400m",
+  fee: "₩50,000",
+  region: "전라",
+  distances: ["25km", "12km"]
+}, {
+  id: 53,
+  name: "ROKA 트레일러닝대회",
+  date: "2026-09-26",
+  location: "경기 포천",
+  type: "trail",
+  distance: "30km",
+  difficulty: 3,
+  elevation: "1,600m",
+  fee: "₩50,000",
+  region: "경기",
+  distances: ["30km", "15km"]
+}, {
+  id: 54,
+  name: "인제 와일드트레일",
+  date: "2026-09-27",
+  location: "강원 인제",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "3,200m",
+  fee: "₩75,000",
+  region: "강원",
+  distances: ["50km", "25km"]
+}, {
+  id: 55,
+  name: "울산 마라톤",
+  date: "2026-10-04",
+  location: "울산 태화강",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "110m",
+  fee: "₩45,000",
+  region: "경상",
+  distances: ["풀코스", "하프", "10km", "5km"]
+}, {
+  id: 56,
+  name: "무등산 트레일 챌린지 (가을)",
+  date: "2026-10-03",
+  location: "광주 무등산",
+  type: "trail",
+  distance: "42km",
+  difficulty: 4,
+  elevation: "2,800m",
+  fee: "₩70,000",
+  region: "전라",
+  distances: ["42km", "25km", "10km"]
+}, {
+  id: 57,
+  name: "서울트레일런 (SNTR)",
+  date: "2026-10-11",
+  location: "서울 둘레길",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "2,800m",
+  fee: "₩65,000",
+  region: "서울",
+  distances: ["50km", "30km", "15km"]
+}, {
+  id: 58,
+  name: "공주 백제 마라톤",
+  date: "2026-10-18",
+  location: "충남 공주",
+  type: "road",
+  distance: "21.0975km",
+  difficulty: 2,
+  elevation: "95m",
+  fee: "₩35,000",
+  region: "충청",
+  distances: ["하프", "10km", "5km"]
+}, {
+  id: 59,
+  name: "청주 마라톤",
+  date: "2026-10-25",
+  location: "충북 청주",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "100m",
+  fee: "₩45,000",
+  region: "충청",
+  distances: ["풀코스", "하프", "10km"]
+}, {
+  id: 60,
+  name: "JTBC 서울마라톤",
+  date: "2026-11-01",
+  location: "서울 잠실",
+  type: "road",
+  distance: "42.195km",
+  difficulty: 3,
+  elevation: "150m",
+  fee: "₩55,000",
+  region: "서울",
+  distances: ["풀코스", "하프", "10km", "5km"]
+}, {
+  id: 61,
+  name: "BDRC 봉담알프스 트레일",
+  date: "2026-11-21",
+  location: "경기 화성",
+  type: "trail",
+  distance: "25km",
+  difficulty: 3,
+  elevation: "1,200m",
+  fee: "₩45,000",
+  region: "경기",
+  distances: ["25km", "12km"]
+}, {
+  id: 62,
+  name: "남해 트레일레이스 (가을)",
+  date: "2026-11-28",
+  location: "경남 남해",
+  type: "trail",
+  distance: "50km",
+  difficulty: 4,
+  elevation: "2,800m",
+  fee: "₩70,000",
+  region: "경상",
+  distances: ["50km", "30km", "15km"]
+}, {
+  id: 63,
+  name: "무등산 트레일런 (겨울)",
+  date: "2026-11-29",
+  location: "광주 무등산",
+  type: "trail",
+  distance: "25km",
+  difficulty: 3,
+  elevation: "1,500m",
+  fee: "₩50,000",
+  region: "전라",
+  distances: ["25km", "15km"]
+}, {
+  id: 64,
+  name: "키스트레일 대구",
+  date: "2026-12-05",
+  location: "대구 팔공산",
+  type: "trail",
+  distance: "30km",
+  difficulty: 3,
+  elevation: "1,800m",
+  fee: "₩55,000",
+  region: "경상",
+  distances: ["30km", "15km", "7km"]
+}, {
+  id: 70,
+  name: "성지순례222 울트라마라톤",
+  date: "2026-04-24",
+  location: "서울 명동성당",
+  type: "ultra",
+  distance: "215km",
+  difficulty: 5,
+  elevation: "3,500m",
+  fee: "₩220,000",
+  region: "서울",
+  distances: ["215km", "101km"]
+}, {
+  id: 71,
+  name: "빛고을 울트라마라톤",
+  date: "2026-06-13",
+  location: "광주 광역시청",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "800m",
+  fee: "₩80,000",
+  region: "전라",
+  distances: ["100km", "50km"]
+}, {
+  id: 72,
+  name: "제주 울트라마라톤",
+  date: "2026-06-20",
+  location: "제주 서귀포",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "1,200m",
+  fee: "₩100,000",
+  region: "제주",
+  distances: ["100km", "60km"]
+}, {
+  id: 73,
+  name: "경주 울트라마라톤",
+  date: "2026-05-02",
+  location: "경주 보문호",
+  type: "ultra",
+  distance: "80km",
+  difficulty: 4,
+  elevation: "600m",
+  fee: "₩70,000",
+  region: "경상",
+  distances: ["80km", "50km"]
+}, {
+  id: 74,
+  name: "설악 울트라 100K",
+  date: "2026-07-04",
+  location: "강원 속초",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "2,400m",
+  fee: "₩110,000",
+  region: "강원",
+  distances: ["100km", "50km"]
+}, {
+  id: 75,
+  name: "천안삼거리 흥타령 울트라마라톤",
+  date: "2026-10-10",
+  location: "충남 천안",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 5,
+  elevation: "900m",
+  fee: "₩85,000",
+  region: "충청",
+  distances: ["100km", "60km"]
+}, {
+  id: 76,
+  name: "국토종주 울트라마라톤",
+  date: "2026-05-22",
+  location: "서울 인천대교",
+  type: "ultra",
+  distance: "200km",
+  difficulty: 5,
+  elevation: "1,800m",
+  fee: "₩200,000",
+  region: "서울",
+  distances: ["200km", "100km"]
+}, {
+  id: 77,
+  name: "동해안 울트라마라톤",
+  date: "2026-09-19",
+  location: "강원 강릉",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 4,
+  elevation: "500m",
+  fee: "₩80,000",
+  region: "강원",
+  distances: ["100km", "60km", "42km"]
+}, {
+  id: 78,
+  name: "낙동강 울트라마라톤",
+  date: "2026-10-17",
+  location: "경남 김해",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 4,
+  elevation: "300m",
+  fee: "₩75,000",
+  region: "경상",
+  distances: ["100km", "50km"]
+}, {
+  id: 79,
+  name: "새만금 울트라마라톤",
+  date: "2026-11-07",
+  location: "전북 군산",
+  type: "ultra",
+  distance: "100km",
+  difficulty: 4,
+  elevation: "200m",
+  fee: "₩80,000",
+  region: "전라",
+  distances: ["100km", "60km", "42km"]
+}];
+
+/* ──────────────────────── HELPERS ──────────────────────── */
+const MONTHS = ["1월", "2월", "3월", "4월", "5월", "6월", "7월", "8월", "9월", "10월", "11월", "12월"];
+const REGIONS = ["전체", "서울", "경기", "강원", "충청", "전라", "경상", "제주"];
+function getDday(ds) {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  const g = new Date(ds);
+  g.setHours(0, 0, 0, 0);
+  const d = Math.ceil((g - t) / 864e5);
+  return d < 0 ? `D+${Math.abs(d)}` : d === 0 ? "D-DAY" : `D-${d}`;
+}
+function isPast(ds) {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return new Date(ds) < t;
+}
+function formatDate(ds) {
+  const d = new Date(ds);
+  return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+}
+function getWeekday(ds) {
+  return ["일", "월", "화", "수", "목", "금", "토"][new Date(ds).getDay()];
+}
+function fmtTime(s) {
+  if (!s || s <= 0) return "";
+  const h = Math.floor(s / 3600),
+    m = Math.floor(s % 3600 / 60),
+    sc = s % 60;
+  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}` : `${m}:${String(sc).padStart(2, '0')}`;
+}
+function parseTime(str) {
+  if (!str) return 0;
+  const p = str.split(":").map(Number);
+  return p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p.length === 2 ? p[0] * 60 + p[1] : 0;
+}
+function getRegPeriod(dateStr) {
+  const d = new Date(dateStr);
+  const start = new Date(d);
+  start.setMonth(start.getMonth() - 2);
+  const end = new Date(d);
+  end.setDate(end.getDate() - 14);
+  const fm = dt => `${dt.getMonth() + 1}.${dt.getDate()}`;
+  return `${fm(start)} ~ ${fm(end)}`;
+}
+
+// FIX: 현재 연도일 때만 지난 달 숨기고, 과거 연도는 전부 보여주기
+function shouldShow(dateStr, selYear) {
+  const now = new Date();
+  const d = new Date(dateStr);
+  const cy = now.getFullYear();
+  if (d.getFullYear() !== selYear) return false;
+  if (selYear < cy) return true; // 과거 연도는 전부 보여줌
+  if (selYear > cy) return true; // 미래 연도도 전부 보여줌
+  return d.getMonth() >= now.getMonth(); // 현재 연도: 이번 달부터
+}
+function resizeImage(file, maxW = 800, q = 0.7) {
+  return new Promise(res => {
+    const r = new FileReader();
+    r.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        let w = img.width,
+          h = img.height;
+        if (w > maxW) {
+          h = h * (maxW / w);
+          w = maxW;
+        }
+        c.width = w;
+        c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        res(c.toDataURL("image/jpeg", q));
+      };
+      img.src = e.target.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+// FIX: 거리 색상 순서 — 큰 거리 먼저 체크
+function distColor(d) {
+  const n = parseFloat(d);
+  if (d.includes("100") || n >= 100) return {
+    bg: "rgba(168,50,50,0.2)",
+    color: "#FF6B6B"
+  };
+  if (d.includes("풀") || n >= 42) return {
+    bg: "rgba(232,67,42,0.15)",
+    color: "#E8432A"
+  };
+  if (d.includes("하프") || n >= 20 && n < 42) return {
+    bg: "rgba(232,151,42,0.15)",
+    color: "#E8972A"
+  };
+  return {
+    bg: "rgba(255,255,255,0.06)",
+    color: "#C9D1D9"
+  };
+}
+const typeColor = t => t === "trail" ? "#4CAF50" : t === "ultra" ? "#C850C0" : "#58A6FF";
+const typeBg = t => t === "trail" ? "rgba(76,175,80,0.15)" : t === "ultra" ? "rgba(200,80,192,0.15)" : "rgba(88,166,255,0.15)";
+const typeLabel = t => t === "trail" ? "TRAIL" : t === "ultra" ? "ULTRA" : "ROAD";
+const Dots = ({
+  level
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    display: "flex",
+    gap: 3
+  }
+}, [1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("div", {
+  key: i,
+  style: {
+    width: 7,
+    height: 7,
+    borderRadius: "50%",
+    background: i <= level ? level >= 4 ? "#E8432A" : level >= 3 ? "#E8972A" : "#4CAF50" : "rgba(255,255,255,0.15)"
+  }
+})));
+
+/* ──────────────────────── MAIN ──────────────────────── */
+function RaceScheduleApp() {
+  const [tab, setTab] = useState("schedule");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [regionFilter, setRegionFilter] = useState("경상");
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedRace, setSelectedRace] = useState(null);
+  const [bookmarked, setBookmarked] = useState(new Set());
+  const [view, setView] = useState("list");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showRegionFilter, setShowRegionFilter] = useState(false);
+  const [records, setRecords] = useState({});
+  const [recordForm, setRecordForm] = useState({
+    hours: "",
+    minutes: "",
+    seconds: "",
+    memo: "",
+    rating: 3,
+    images: []
+  });
+  const [showAddModal, setShowAddModal] = useState(null);
+  const [viewingImage, setViewingImage] = useState(null);
+  const [fetchedRaces, setFetchedRaces] = useState([]);
+  const [updating, setUpdating] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const fileInputRef = useRef(null);
+  const allRaces = useMemo(() => {
+    const merged = [...DEFAULT_RACES];
+    const names = new Set(merged.map(r => r.name));
+    fetchedRaces.forEach(r => {
+      if (!names.has(r.name)) {
+        merged.push(r);
+        names.add(r.name);
+      }
+    });
+    return merged.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [fetchedRaces]);
+  const availableYears = useMemo(() => {
+    const s = new Set(allRaces.map(r => new Date(r.date).getFullYear()));
+    return [...s].sort();
+  }, [allRaces]);
+
+  // FIX: 선택된 연도가 availableYears에 없으면 가장 가까운 연도로
+  useEffect(() => {
+    if (availableYears.length && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[availableYears.length - 1]);
+    }
+  }, [availableYears, selectedYear]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await window.storage.get("race-records");
+        if (r?.value) setRecords(JSON.parse(r.value));
+      } catch {}
+      try {
+        const b = await window.storage.get("race-bookmarks");
+        if (b?.value) setBookmarked(new Set(JSON.parse(b.value)));
+      } catch {}
+      try {
+        const c = await window.storage.get("race-fetched");
+        if (c?.value) {
+          const d = JSON.parse(c.value);
+          setFetchedRaces(d.races || []);
+          setLastUpdated(d.timestamp || null);
+        }
+      } catch {}
+    })();
+  }, []);
+  const saveRecords = useCallback(async nr => {
+    setRecords(nr);
+    try {
+      await window.storage.set("race-records", JSON.stringify(nr));
+    } catch {}
+  }, []);
+  const saveBookmarks = useCallback(async ns => {
+    setBookmarked(ns);
+    try {
+      await window.storage.set("race-bookmarks", JSON.stringify([...ns]));
+    } catch {}
+  }, []);
+  const toggleBookmark = (id, e) => {
+    e.stopPropagation();
+    const n = new Set(bookmarked);
+    n.has(id) ? n.delete(id) : n.add(id);
+    saveBookmarks(n);
+  };
+  const fetchLatestRaces = async () => {
+    setUpdating(true);
+    setUpdateMsg("최신 대회 일정을 검색 중...");
+    try {
+      const existingNames = allRaces.map(r => r.name).join(", ");
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 4000,
+          tools: [{
+            type: "web_search_20250305",
+            name: "web_search"
+          }],
+          messages: [{
+            role: "user",
+            content: `한국 마라톤, 트레일러닝, 울트라마라톤 대회 최신 일정을 검색해줘.
+기존 목록: ${existingNames}
+위 목록에 없는 새 대회만 찾아서 JSON 배열로만 응답해. 설명 없이 순수 JSON만:
+[{"name":"대회명","date":"YYYY-MM-DD","location":"출발지","type":"road/trail/ultra","distance":"대표거리","difficulty":1~5,"elevation":"누적고도","fee":"참가비","region":"서울/경기/강원/충청/전라/경상/제주","distances":["종목1","종목2"]}]
+새 대회가 없으면 []`
+          }]
+        })
+      });
+      const data = await res.json();
+      const text = data.content?.filter(c => c.type === "text").map(c => c.text).join("") || "";
+      let parsed = [];
+      try {
+        const m = text.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/);
+        if (m) parsed = JSON.parse(m[0]);
+      } catch {}
+      const ts = new Date().toISOString();
+      if (parsed.length > 0) {
+        const newRaces = parsed.map((r, i) => ({
+          ...r,
+          id: 900000 + Date.now() + i,
+          isFetched: true
+        }));
+        const combined = [...fetchedRaces, ...newRaces];
+        setFetchedRaces(combined);
+        setLastUpdated(ts);
+        try {
+          await window.storage.set("race-fetched", JSON.stringify({
+            races: combined,
+            timestamp: ts
+          }));
+        } catch {}
+        setUpdateMsg(`✅ ${newRaces.length}개 새 대회를 추가했습니다!`);
+      } else {
+        setLastUpdated(ts);
+        try {
+          await window.storage.set("race-fetched", JSON.stringify({
+            races: fetchedRaces,
+            timestamp: ts
+          }));
+        } catch {}
+        setUpdateMsg("✅ 이미 최신 상태입니다.");
+      }
+    } catch {
+      setUpdateMsg("⚠️ 업데이트 실패. 나중에 다시 시도해주세요.");
+    }
+    setUpdating(false);
+    setTimeout(() => setUpdateMsg(null), 4000);
+  };
+  const openAddRecord = (raceId, e) => {
+    if (e) e.stopPropagation();
+    const ex = records[raceId];
+    if (ex) {
+      const ts = parseTime(ex.time);
+      setRecordForm({
+        hours: String(Math.floor(ts / 3600)),
+        minutes: String(Math.floor(ts % 3600 / 60)),
+        seconds: String(ts % 60),
+        memo: ex.memo || "",
+        rating: ex.rating || 3,
+        images: ex.images || []
+      });
+    } else setRecordForm({
+      hours: "",
+      minutes: "",
+      seconds: "",
+      memo: "",
+      rating: 3,
+      images: []
+    });
+    setShowAddModal(raceId);
+  };
+  const handleImageUpload = async e => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    const ni = [];
+    for (const f of files.slice(0, 3 - recordForm.images.length)) {
+      ni.push(await resizeImage(f));
+    }
+    setRecordForm(prev => ({
+      ...prev,
+      images: [...prev.images, ...ni]
+    }));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+  const removeImage = idx => setRecordForm(prev => ({
+    ...prev,
+    images: prev.images.filter((_, i) => i !== idx)
+  }));
+  const submitRecord = async () => {
+    if (!showAddModal) return;
+    const ts = parseInt(recordForm.hours || 0) * 3600 + parseInt(recordForm.minutes || 0) * 60 + parseInt(recordForm.seconds || 0);
+    const race = allRaces.find(r => r.id === showAddModal);
+    await saveRecords({
+      ...records,
+      [showAddModal]: {
+        time: fmtTime(ts) || "—",
+        totalSeconds: ts,
+        memo: recordForm.memo,
+        rating: recordForm.rating,
+        images: recordForm.images,
+        raceName: race?.name,
+        raceDate: race?.date,
+        raceType: race?.type,
+        distance: race?.distance,
+        addedAt: new Date().toISOString()
+      }
+    });
+    setShowAddModal(null);
+  };
+  const deleteRecord = async raceId => {
+    const nr = {
+      ...records
+    };
+    delete nr[raceId];
+    await saveRecords(nr);
+  };
+
+  /* ── Filtered & computed ── */
+  const filtered = useMemo(() => {
+    let r = allRaces.filter(x => shouldShow(x.date, selectedYear));
+    if (typeFilter === "road") r = r.filter(x => x.type === "road");
+    if (typeFilter === "trail") r = r.filter(x => x.type === "trail");
+    if (typeFilter === "ultra") r = r.filter(x => x.type === "ultra");
+    if (typeFilter === "bookmarked") r = r.filter(x => bookmarked.has(x.id));
+    if (regionFilter !== "전체") r = r.filter(x => x.region === regionFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      r = r.filter(x => x.name.toLowerCase().includes(q) || x.location.toLowerCase().includes(q) || x.distance.toLowerCase().includes(q));
+    }
+    return r;
+  }, [allRaces, typeFilter, regionFilter, bookmarked, searchQuery, selectedYear]);
+  const calendarData = useMemo(() => {
+    const m = {};
+    filtered.forEach(r => {
+      const mo = new Date(r.date).getMonth();
+      if (!m[mo]) m[mo] = [];
+      m[mo].push(r);
+    });
+    return m;
+  }, [filtered]);
+  const yearStats = useMemo(() => {
+    const yr = allRaces.filter(r => new Date(r.date).getFullYear() === selectedYear);
+    return {
+      total: yr.length,
+      road: yr.filter(r => r.type === "road").length,
+      trail: yr.filter(r => r.type === "trail").length,
+      ultra: yr.filter(r => r.type === "ultra").length
+    };
+  }, [allRaces, selectedYear]);
+  const recordEntries = useMemo(() => Object.entries(records).map(([id, rec]) => ({
+    ...rec,
+    id: Number(id),
+    race: allRaces.find(r => r.id === Number(id))
+  })).sort((a, b) => new Date(a.raceDate) - new Date(b.raceDate)), [records, allRaces]);
+  const recordStats = useMemo(() => {
+    const e = Object.values(records);
+    return {
+      count: e.length,
+      road: e.filter(r => r.raceType === "road").length,
+      trail: e.filter(r => r.raceType === "trail").length,
+      ultra: e.filter(r => r.raceType === "ultra").length,
+      totalKm: e.reduce((s, r) => s + (parseFloat(r.distance) || 0), 0)
+    };
+  }, [records]);
+
+  /* ── Styles ── */
+  const inputCenter = {
+    background: "rgba(255,255,255,0.07)",
+    border: "1px solid rgba(255,255,255,0.12)",
+    borderRadius: 8,
+    color: "#E6EDF3",
+    fontSize: 14,
+    fontFamily: "Oswald",
+    padding: "8px 10px",
+    outline: "none",
+    textAlign: "center",
+    width: "100%",
+    boxSizing: "border-box"
+  };
+  const ddayColor = ds => {
+    const dd = getDday(ds);
+    if (isPast(ds)) return "#8B949E";
+    if (dd === "D-DAY") return "#E8432A";
+    if (dd.includes("D-") && parseInt(dd.split("-")[1]) <= 14) return "#E8432A";
+    if (dd.includes("D-") && parseInt(dd.split("-")[1]) <= 30) return "#E8972A";
+    return "#8B949E";
+  };
+  const filterBg = (key, active) => {
+    if (!active) return "rgba(255,255,255,0.06)";
+    const map = {
+      all: "linear-gradient(135deg,#E8432A,#FF6B35)",
+      road: "linear-gradient(135deg,#1A4B8C,#58A6FF)",
+      trail: "linear-gradient(135deg,#2D5A27,#4CAF50)",
+      ultra: "linear-gradient(135deg,#8B2FC9,#C850C0)",
+      bookmarked: "linear-gradient(135deg,#8B6914,#E8C32A)"
+    };
+    return map[key];
+  };
+
+  /* ──────────────────────── RENDER ──────────────────────── */
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: "#0D1117",
+      fontFamily: "'Noto Sans KR','Pretendard',sans-serif",
+      color: "#E6EDF3"
+    }
+  }, /*#__PURE__*/React.createElement("link", {
+    href: "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Oswald:wght@300;400;500;600;700&display=swap",
+    rel: "stylesheet"
+  }), /*#__PURE__*/React.createElement("svg", {
+    style: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      opacity: 0.04,
+      pointerEvents: "none"
+    },
+    viewBox: "0 0 800 600"
+  }, [...Array(12)].map((_, i) => /*#__PURE__*/React.createElement("ellipse", {
+    key: i,
+    cx: 400 + Math.sin(i * 0.8) * 150,
+    cy: 300 + Math.cos(i * 1.2) * 100,
+    rx: 300 - i * 22,
+    ry: 200 - i * 15,
+    fill: "none",
+    stroke: "#4CAF50",
+    strokeWidth: "0.8"
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "20px 16px 0",
+      background: "rgba(13,17,23,0.98)",
+      borderBottom: "1px solid rgba(255,255,255,0.06)",
+      position: "sticky",
+      top: 0,
+      zIndex: 100,
+      backdropFilter: "blur(20px)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      background: "linear-gradient(135deg,#E8432A,#FF6B35)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 16,
+      fontWeight: 900,
+      fontFamily: "Oswald",
+      color: "#fff",
+      boxShadow: "0 4px 16px rgba(232,67,42,0.35)"
+    }
+  }, "R"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: "Oswald",
+      fontWeight: 700,
+      fontSize: 18,
+      letterSpacing: "0.04em",
+      margin: 0,
+      lineHeight: 1,
+      textTransform: "uppercase",
+      background: "linear-gradient(90deg,#E6EDF3,#8B949E)",
+      WebkitBackgroundClip: "text",
+      WebkitTextFillColor: "transparent"
+    }
+  }, "RACE CALENDAR"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: 0,
+      fontSize: 10,
+      color: "#8B949E",
+      fontWeight: 300
+    }
+  }, yearStats.total, "\uAC1C \uB300\uD68C \xB7 \uB85C\uB4DC ", yearStats.road, " \xB7 \uD2B8\uB808\uC77C ", yearStats.trail, " \xB7 \uC6B8\uD2B8\uB77C ", yearStats.ultra))), /*#__PURE__*/React.createElement("button", {
+    onClick: fetchLatestRaces,
+    disabled: updating,
+    style: {
+      padding: "6px 12px",
+      borderRadius: 20,
+      border: "none",
+      cursor: updating ? "default" : "pointer",
+      fontSize: 11,
+      fontWeight: 600,
+      fontFamily: "inherit",
+      background: updating ? "rgba(255,255,255,0.06)" : "rgba(76,175,80,0.15)",
+      color: updating ? "#8B949E" : "#4CAF50",
+      display: "flex",
+      alignItems: "center",
+      gap: 4,
+      opacity: updating ? 0.7 : 1
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      display: "inline-block",
+      animation: updating ? "spin 1s linear infinite" : "none",
+      fontSize: 13
+    }
+  }, updating ? "⏳" : "🔄"), updating ? "검색 중..." : "일정 업데이트")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 6,
+      marginBottom: 8
+    }
+  }, availableYears.map(y => /*#__PURE__*/React.createElement("button", {
+    key: y,
+    onClick: () => setSelectedYear(y),
+    style: {
+      padding: "4px 14px",
+      borderRadius: 16,
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "Oswald",
+      fontSize: 14,
+      fontWeight: selectedYear === y ? 700 : 400,
+      background: selectedYear === y ? "linear-gradient(135deg,#E8432A,#FF6B35)" : "rgba(255,255,255,0.06)",
+      color: selectedYear === y ? "#fff" : "#8B949E",
+      transition: "all 0.2s"
+    }
+  }, y)), lastUpdated && /*#__PURE__*/React.createElement("span", {
+    style: {
+      marginLeft: "auto",
+      fontSize: 9,
+      color: "rgba(139,148,158,0.4)"
+    }
+  }, "\uC5C5\uB370\uC774\uD2B8 ", new Date(lastUpdated).toLocaleDateString("ko"))), updateMsg && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 12px",
+      borderRadius: 8,
+      background: updateMsg.startsWith("✅") ? "rgba(76,175,80,0.12)" : "rgba(232,67,42,0.12)",
+      color: updateMsg.startsWith("✅") ? "#4CAF50" : "#E8432A",
+      fontSize: 12,
+      marginBottom: 6,
+      animation: "fadeIn 0.3s"
+    }
+  }, updateMsg), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex"
+    }
+  }, [{
+    key: "schedule",
+    label: "📅 대회 일정"
+  }, {
+    key: "records",
+    label: `🏅 나의 기록 (${recordStats.count})`
+  }].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.key,
+    onClick: () => setTab(t.key),
+    style: {
+      flex: 1,
+      padding: "10px 0",
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "inherit",
+      fontSize: 13,
+      fontWeight: 600,
+      background: "transparent",
+      color: tab === t.key ? "#E6EDF3" : "#8B949E",
+      borderBottom: tab === t.key ? "2px solid #E8432A" : "2px solid transparent"
+    }
+  }, t.label)))), tab === "schedule" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "10px 16px 0",
+      background: "rgba(13,17,23,0.97)",
+      position: "sticky",
+      top: 110,
+      zIndex: 99,
+      backdropFilter: "blur(20px)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "\uB300\uD68C\uBA85, \uC7A5\uC18C, \uAC70\uB9AC \uAC80\uC0C9...",
+    value: searchQuery,
+    onChange: e => setSearchQuery(e.target.value),
+    style: {
+      width: "100%",
+      boxSizing: "border-box",
+      padding: "9px 12px 9px 34px",
+      background: "rgba(255,255,255,0.05)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 10,
+      color: "#E6EDF3",
+      fontSize: 13,
+      outline: "none",
+      fontFamily: "inherit"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 11,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#8B949E",
+      fontSize: 14
+    }
+  }, "\u2315"), searchQuery && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setSearchQuery(""),
+    style: {
+      position: "absolute",
+      right: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      background: "rgba(255,255,255,0.1)",
+      border: "none",
+      borderRadius: "50%",
+      width: 20,
+      height: 20,
+      cursor: "pointer",
+      color: "#8B949E",
+      fontSize: 11,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 6,
+      paddingBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4,
+      flex: 1,
+      overflowX: "auto"
+    }
+  }, [{
+    key: "all",
+    label: "전체"
+  }, {
+    key: "road",
+    label: "🛣 로드"
+  }, {
+    key: "trail",
+    label: "⛰ 트레일"
+  }, {
+    key: "ultra",
+    label: "🔥 울트라"
+  }, {
+    key: "bookmarked",
+    label: "★ 관심"
+  }].map(f => /*#__PURE__*/React.createElement("button", {
+    key: f.key,
+    onClick: () => setTypeFilter(f.key),
+    style: {
+      padding: "5px 11px",
+      borderRadius: 20,
+      border: "none",
+      cursor: "pointer",
+      fontSize: 11,
+      fontWeight: 500,
+      fontFamily: "inherit",
+      whiteSpace: "nowrap",
+      background: filterBg(f.key, typeFilter === f.key),
+      color: typeFilter === f.key ? "#fff" : "#8B949E"
+    }
+  }, f.label))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 4
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowRegionFilter(!showRegionFilter),
+    style: {
+      height: 28,
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      padding: "0 10px",
+      fontSize: 11,
+      fontFamily: "inherit",
+      background: regionFilter !== "전체" ? "rgba(232,67,42,0.15)" : "rgba(255,255,255,0.06)",
+      color: regionFilter !== "전체" ? "#E8432A" : "#8B949E",
+      display: "flex",
+      alignItems: "center",
+      gap: 3
+    }
+  }, "\uD83D\uDCCD", regionFilter !== "전체" ? regionFilter : "지역"), ["list", "calendar"].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setView(v),
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      background: view === v ? "rgba(255,255,255,0.12)" : "transparent",
+      color: view === v ? "#E6EDF3" : "#8B949E",
+      fontSize: 13,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
+    }
+  }, v === "list" ? "☰" : "▦")))), showRegionFilter && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5,
+      paddingBottom: 10
+    }
+  }, REGIONS.map(r => /*#__PURE__*/React.createElement("button", {
+    key: r,
+    onClick: () => {
+      setRegionFilter(r);
+      setShowRegionFilter(false);
+    },
+    style: {
+      padding: "5px 14px",
+      borderRadius: 16,
+      border: "none",
+      cursor: "pointer",
+      fontSize: 12,
+      fontFamily: "inherit",
+      background: regionFilter === r ? "rgba(232,67,42,0.2)" : "rgba(255,255,255,0.06)",
+      color: regionFilter === r ? "#E8432A" : "#C9D1D9"
+    }
+  }, r)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "8px 14px 100px"
+    }
+  }, view === "list" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 8
+    }
+  }, filtered.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: 60,
+      color: "#8B949E"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 36,
+      marginBottom: 12
+    }
+  }, "\uD83C\uDFC3"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14
+    }
+  }, selectedYear, "\uB144 \uD574\uB2F9\uD558\uB294 \uB300\uD68C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      marginTop: 8,
+      color: "#4CAF50",
+      cursor: "pointer"
+    },
+    onClick: fetchLatestRaces
+  }, "\uD83D\uDD04 \uC77C\uC815 \uC5C5\uB370\uC774\uD2B8\uB85C \uC0C8 \uB300\uD68C \uCC3E\uAE30")), filtered.map((race, idx) => {
+    const isExp = selectedRace?.id === race.id;
+    const hr = records[race.id];
+    const past = isPast(race.date);
+    return /*#__PURE__*/React.createElement("div", {
+      key: race.id,
+      onClick: () => setSelectedRace(isExp ? null : race),
+      style: {
+        background: isExp ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.025)",
+        border: `1px solid ${isExp ? "rgba(232,67,42,0.25)" : "rgba(255,255,255,0.06)"}`,
+        borderRadius: 12,
+        padding: "12px 14px",
+        cursor: "pointer",
+        transition: "all 0.25s",
+        animation: `fadeSlideIn 0.3s ease ${Math.min(idx * 0.02, 0.4)}s both`,
+        position: "relative",
+        overflow: "hidden",
+        opacity: past && !hr ? 0.5 : 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: 3,
+        height: "100%",
+        background: typeColor(race.type),
+        borderRadius: "12px 0 0 12px"
+      }
+    }), hr && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: 8,
+        right: 28,
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: "#E8C32A",
+        boxShadow: "0 0 6px rgba(232,195,42,0.5)"
+      }
+    }), race.isFetched && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: 8,
+        right: 8,
+        fontSize: 8,
+        color: "#4CAF50",
+        fontFamily: "Oswald",
+        fontWeight: 700
+      }
+    }, "NEW"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        marginBottom: 3,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("h3", {
+      style: {
+        margin: 0,
+        fontSize: 14,
+        fontWeight: 700,
+        lineHeight: 1.3
+      }
+    }, race.name), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#C9D1D9",
+        fontFamily: "Oswald",
+        fontWeight: 500,
+        whiteSpace: "nowrap"
+      }
+    }, formatDate(race.date), " (", getWeekday(race.date), ")")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: "#8B949E",
+        lineHeight: 1.5
+      }
+    }, "\uD83D\uDCCD ", race.location, /*#__PURE__*/React.createElement("span", {
+      style: {
+        margin: "0 6px",
+        opacity: 0.3
+      }
+    }, "|"), "\uD83D\uDCCB \uC811\uC218 ", getRegPeriod(race.date)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        marginTop: 5,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 600,
+        padding: "1px 6px",
+        borderRadius: 4,
+        background: typeBg(race.type),
+        color: typeColor(race.type),
+        textTransform: "uppercase",
+        fontFamily: "Oswald"
+      }
+    }, typeLabel(race.type)), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 500,
+        padding: "1px 6px",
+        borderRadius: 4,
+        background: "rgba(255,255,255,0.06)",
+        color: "#C9D1D9",
+        fontFamily: "Oswald"
+      }
+    }, race.distance), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        padding: "1px 5px",
+        borderRadius: 4,
+        background: "rgba(255,255,255,0.04)",
+        color: "#8B949E"
+      }
+    }, race.region), hr && /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 9,
+        fontWeight: 600,
+        padding: "1px 6px",
+        borderRadius: 4,
+        background: "rgba(232,195,42,0.12)",
+        color: "#E8C32A",
+        fontFamily: "Oswald"
+      }
+    }, "\uD83C\uDFC5 ", hr.time, hr.images?.length > 0 ? ` · 📷${hr.images.length}` : ""))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: 3,
+        marginLeft: 8
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: e => toggleBookmark(race.id, e),
+      style: {
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        fontSize: 16,
+        padding: 0,
+        color: bookmarked.has(race.id) ? "#E8C32A" : "rgba(255,255,255,0.2)"
+      }
+    }, bookmarked.has(race.id) ? "★" : "☆"), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "Oswald",
+        fontWeight: 600,
+        fontSize: 12,
+        color: ddayColor(race.date)
+      }
+    }, getDday(race.date)))), isExp && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        animation: "fadeIn 0.3s"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 6px",
+        borderRadius: 8,
+        background: "rgba(255,255,255,0.04)",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        marginBottom: 2
+      }
+    }, "\uD83D\uDCC8"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "Oswald",
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#E6EDF3"
+      }
+    }, race.elevation || "-"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: "#8B949E"
+      }
+    }, "\uB204\uC801 \uACE0\uB3C4")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 6px",
+        borderRadius: 8,
+        background: "rgba(255,255,255,0.04)",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        fontWeight: 600,
+        color: "#8B949E",
+        marginBottom: 5,
+        fontFamily: "Oswald"
+      }
+    }, "\uD83C\uDFC1 \uC885\uBAA9"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 4,
+        flexWrap: "wrap",
+        justifyContent: "center"
+      }
+    }, (race.distances || []).map((d, i) => {
+      const c = distColor(d);
+      return /*#__PURE__*/React.createElement("span", {
+        key: i,
+        style: {
+          padding: "2px 8px",
+          borderRadius: 12,
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: "Oswald",
+          background: c.bg,
+          color: c.color,
+          border: `1px solid ${c.color}22`
+        }
+      }, d);
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "10px 6px",
+        borderRadius: 8,
+        background: "rgba(255,255,255,0.04)",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 14,
+        marginBottom: 2
+      }
+    }, "\uD83D\uDCB0"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "Oswald",
+        fontSize: 13,
+        fontWeight: 600,
+        color: "#E6EDF3"
+      }
+    }, race.fee || "미정"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: "#8B949E"
+      }
+    }, "\uCC38\uAC00\uBE44"))), hr?.images?.length > 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: "#8B949E",
+        marginBottom: 6,
+        fontFamily: "Oswald"
+      }
+    }, "\uD83D\uDCF7 \uAE30\uB85D\uC99D"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        overflowX: "auto",
+        paddingBottom: 4
+      }
+    }, hr.images.map((img, i) => /*#__PURE__*/React.createElement("img", {
+      key: i,
+      src: img,
+      onClick: e => {
+        e.stopPropagation();
+        setViewingImage(img);
+      },
+      style: {
+        width: 72,
+        height: 72,
+        objectFit: "cover",
+        borderRadius: 8,
+        border: "1px solid rgba(255,255,255,0.1)",
+        cursor: "pointer",
+        flexShrink: 0
+      }
+    })))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginTop: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 6
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 10,
+        color: "#8B949E"
+      }
+    }, "\uB09C\uC774\uB3C4"), /*#__PURE__*/React.createElement(Dots, {
+      level: race.difficulty
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: e => openAddRecord(race.id, e),
+      style: {
+        padding: "7px 14px",
+        borderRadius: 8,
+        border: "none",
+        cursor: "pointer",
+        background: hr ? "rgba(232,195,42,0.15)" : "rgba(255,255,255,0.08)",
+        color: hr ? "#E8C32A" : "#C9D1D9",
+        fontWeight: 600,
+        fontSize: 11,
+        fontFamily: "inherit"
+      }
+    }, hr ? "✏️ 기록 수정" : "🏅 기록 추가"))));
+  })) :
+  /*#__PURE__*/
+  /* Calendar view */
+  React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 18
+    }
+  }, Object.entries(calendarData).sort(([a], [b]) => a - b).map(([month, races]) => /*#__PURE__*/React.createElement("div", {
+    key: month
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "Oswald",
+      fontSize: 26,
+      fontWeight: 700,
+      color: "#E8432A",
+      lineHeight: 1
+    }
+  }, MONTHS[month]), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      height: 1,
+      background: "rgba(255,255,255,0.06)"
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#8B949E",
+      background: "rgba(255,255,255,0.05)",
+      padding: "2px 9px",
+      borderRadius: 10
+    }
+  }, races.length, "\uAC1C")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 6
+    }
+  }, races.map(race => {
+    const hr = records[race.id];
+    return /*#__PURE__*/React.createElement("div", {
+      key: race.id,
+      onClick: () => setSelectedRace(selectedRace?.id === race.id ? null : race),
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        cursor: "pointer",
+        padding: "9px 12px",
+        borderRadius: 10,
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.05)",
+        position: "relative"
+      }
+    }, hr && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "absolute",
+        top: 6,
+        right: 6,
+        width: 6,
+        height: 6,
+        borderRadius: "50%",
+        background: "#E8C32A"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        flexShrink: 0,
+        background: `linear-gradient(135deg,${typeBg(race.type)},transparent)`,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        border: `1px solid ${typeColor(race.type)}33`
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "Oswald",
+        fontSize: 15,
+        fontWeight: 700,
+        lineHeight: 1
+      }
+    }, new Date(race.date).getDate()), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 8,
+        color: "#8B949E"
+      }
+    }, getWeekday(race.date))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 13,
+        fontWeight: 600,
+        marginBottom: 2,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, race.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 10,
+        color: "#8B949E"
+      }
+    }, (race.distances || []).join(" / "), " \xB7 ", race.location, hr ? ` · 🏅 ${hr.time}` : "")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        gap: 3,
+        flexShrink: 0
+      }
+    }, /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontFamily: "Oswald",
+        fontSize: 11,
+        fontWeight: 500,
+        color: ddayColor(race.date)
+      }
+    }, getDday(race.date)), /*#__PURE__*/React.createElement(Dots, {
+      level: race.difficulty
+    })));
+  }))))))), tab === "records" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 14px 100px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      marginBottom: 16
+    }
+  }, [{
+    label: "참가",
+    val: recordStats.count,
+    color: "#E8C32A",
+    unit: "회"
+  }, {
+    label: "로드",
+    val: recordStats.road,
+    color: "#58A6FF",
+    unit: "회"
+  }, {
+    label: "트레일",
+    val: recordStats.trail,
+    color: "#4CAF50",
+    unit: "회"
+  }, {
+    label: "울트라",
+    val: recordStats.ultra,
+    color: "#C850C0",
+    unit: "회"
+  }, {
+    label: "거리",
+    val: recordStats.totalKm.toFixed(0),
+    color: "#E8432A",
+    unit: "km"
+  }].map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.label,
+    style: {
+      flex: 1,
+      padding: "10px 2px",
+      borderRadius: 10,
+      background: "rgba(255,255,255,0.04)",
+      textAlign: "center",
+      border: "1px solid rgba(255,255,255,0.06)"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "Oswald",
+      fontSize: 18,
+      fontWeight: 600,
+      color: s.color
+    }
+  }, s.val, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 400,
+      color: "#8B949E"
+    }
+  }, s.unit)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: "#8B949E"
+    }
+  }, s.label)))), recordEntries.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: 60,
+      color: "#8B949E"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 48,
+      marginBottom: 16
+    }
+  }, "\uD83C\uDFC5"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+      marginBottom: 6,
+      color: "#C9D1D9"
+    }
+  }, "\uC544\uC9C1 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      lineHeight: 1.6
+    }
+  }, "\uB300\uD68C \uC77C\uC815 \uD0ED\uC5D0\uC11C \uB300\uD68C\uB97C \uC120\uD0DD\uD55C \uD6C4", /*#__PURE__*/React.createElement("br", null), "\u300C\uD83C\uDFC5 \uAE30\uB85D \uCD94\uAC00\u300D \uBC84\uD2BC\uC73C\uB85C \uCC38\uAC00 \uAE30\uB85D\uC744 \uB0A8\uACA8\uBCF4\uC138\uC694")) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      gap: 10
+    }
+  }, recordEntries.map((rec, idx) => /*#__PURE__*/React.createElement("div", {
+    key: rec.id,
+    style: {
+      background: "rgba(255,255,255,0.03)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: 12,
+      padding: "14px 16px",
+      position: "relative",
+      overflow: "hidden",
+      animation: `fadeSlideIn 0.3s ease ${idx * 0.04}s both`
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: 3,
+      height: "100%",
+      background: typeColor(rec.raceType),
+      borderRadius: "12px 0 0 12px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5,
+      marginBottom: 3
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      fontWeight: 600,
+      padding: "1px 6px",
+      borderRadius: 4,
+      fontFamily: "Oswald",
+      background: typeBg(rec.raceType),
+      color: typeColor(rec.raceType),
+      textTransform: "uppercase"
+    }
+  }, typeLabel(rec.raceType)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 9,
+      padding: "1px 6px",
+      borderRadius: 4,
+      background: "rgba(255,255,255,0.06)",
+      color: "#C9D1D9",
+      fontFamily: "Oswald"
+    }
+  }, rec.distance)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 14,
+      fontWeight: 700
+    }
+  }, rec.raceName), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: "#8B949E",
+      marginTop: 2
+    }
+  }, "\uD83D\uDCC5 ", formatDate(rec.raceDate), " (", getWeekday(rec.raceDate), ")")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "Oswald",
+      fontSize: 24,
+      fontWeight: 700,
+      color: "#E8C32A",
+      lineHeight: 1
+    }
+  }, rec.time || "—"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 4,
+      display: "flex",
+      gap: 2,
+      justifyContent: "flex-end"
+    }
+  }, [1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("span", {
+    key: i,
+    style: {
+      fontSize: 12,
+      color: i <= rec.rating ? "#E8C32A" : "rgba(255,255,255,0.15)"
+    }
+  }, "\u2605"))))), rec.memo && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "rgba(255,255,255,0.03)",
+      borderRadius: 8,
+      padding: "8px 10px",
+      fontSize: 12,
+      color: "#C9D1D9",
+      lineHeight: 1.5,
+      marginBottom: 8
+    }
+  }, "\uD83D\uDCAC ", rec.memo), rec.images?.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#8B949E",
+      marginBottom: 6,
+      fontFamily: "Oswald"
+    }
+  }, "\uD83D\uDCF7 \uAE30\uB85D\uC99D (", rec.images.length, ")"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      overflowX: "auto",
+      paddingBottom: 4
+    }
+  }, rec.images.map((img, i) => /*#__PURE__*/React.createElement("img", {
+    key: i,
+    src: img,
+    onClick: () => setViewingImage(img),
+    style: {
+      width: 80,
+      height: 80,
+      objectFit: "cover",
+      borderRadius: 10,
+      border: "1px solid rgba(255,255,255,0.1)",
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      justifyContent: "flex-end"
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => openAddRecord(rec.id),
+    style: {
+      padding: "5px 12px",
+      borderRadius: 6,
+      border: "none",
+      cursor: "pointer",
+      background: "rgba(255,255,255,0.06)",
+      color: "#C9D1D9",
+      fontSize: 11,
+      fontFamily: "inherit"
+    }
+  }, "\u270F\uFE0F \uC218\uC815"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => deleteRecord(rec.id),
+    style: {
+      padding: "5px 12px",
+      borderRadius: 6,
+      border: "none",
+      cursor: "pointer",
+      background: "rgba(232,67,42,0.1)",
+      color: "#E8432A",
+      fontSize: 11,
+      fontFamily: "inherit"
+    }
+  }, "\uD83D\uDDD1 \uC0AD\uC81C")))))), showAddModal && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.75)",
+      zIndex: 200,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      backdropFilter: "blur(4px)"
+    },
+    onClick: () => setShowAddModal(null)
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      width: "100%",
+      maxWidth: 440,
+      maxHeight: "90vh",
+      overflowY: "auto",
+      background: "#161B22",
+      borderRadius: "20px 20px 0 0",
+      padding: "24px 20px 32px",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderBottom: "none",
+      animation: "slideUp 0.3s"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      background: "rgba(255,255,255,0.15)",
+      margin: "0 auto 16px"
+    }
+  }), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "0 0 4px",
+      fontSize: 16,
+      fontWeight: 700
+    }
+  }, "\uD83C\uDFC5 \uB300\uD68C \uAE30\uB85D ", records[showAddModal] ? "수정" : "추가"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "0 0 16px",
+      fontSize: 12,
+      color: "#8B949E"
+    }
+  }, allRaces.find(r => r.id === showAddModal)?.name), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#8B949E",
+      marginBottom: 6,
+      display: "block"
+    }
+  }, "\uC644\uC8FC \uAE30\uB85D (\uC2DC:\uBD84:\uCD08)"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "\uC2DC",
+    min: "0",
+    max: "99",
+    value: recordForm.hours,
+    onChange: e => setRecordForm({
+      ...recordForm,
+      hours: e.target.value
+    }),
+    style: inputCenter
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#8B949E",
+      fontFamily: "Oswald",
+      fontSize: 18
+    }
+  }, ":"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "\uBD84",
+    min: "0",
+    max: "59",
+    value: recordForm.minutes,
+    onChange: e => setRecordForm({
+      ...recordForm,
+      minutes: e.target.value
+    }),
+    style: inputCenter
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#8B949E",
+      fontFamily: "Oswald",
+      fontSize: 18
+    }
+  }, ":"), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    placeholder: "\uCD08",
+    min: "0",
+    max: "59",
+    value: recordForm.seconds,
+    onChange: e => setRecordForm({
+      ...recordForm,
+      seconds: e.target.value
+    }),
+    style: inputCenter
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#8B949E",
+      marginBottom: 6,
+      display: "block"
+    }
+  }, "\uB9CC\uC871\uB3C4"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6
+    }
+  }, [1, 2, 3, 4, 5].map(i => /*#__PURE__*/React.createElement("button", {
+    key: i,
+    onClick: () => setRecordForm({
+      ...recordForm,
+      rating: i
+    }),
+    style: {
+      flex: 1,
+      padding: "8px 0",
+      borderRadius: 8,
+      border: "none",
+      cursor: "pointer",
+      fontSize: 18,
+      background: i <= recordForm.rating ? "rgba(232,195,42,0.15)" : "rgba(255,255,255,0.05)",
+      color: i <= recordForm.rating ? "#E8C32A" : "rgba(255,255,255,0.15)"
+    }
+  }, "\u2605")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#8B949E",
+      marginBottom: 6,
+      display: "block"
+    }
+  }, "\uD83D\uDCF7 \uAE30\uB85D\uC99D \uCCA8\uBD80 (\uCD5C\uB300 3\uC7A5)"), recordForm.images.length > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 10,
+      flexWrap: "wrap"
+    }
+  }, recordForm.images.map((img, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      position: "relative",
+      width: 88,
+      height: 88
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: img,
+    style: {
+      width: 88,
+      height: 88,
+      objectFit: "cover",
+      borderRadius: 10,
+      border: "1px solid rgba(255,255,255,0.1)"
+    }
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => removeImage(i),
+    style: {
+      position: "absolute",
+      top: -6,
+      right: -6,
+      width: 22,
+      height: 22,
+      borderRadius: "50%",
+      background: "#E8432A",
+      border: "2px solid #161B22",
+      cursor: "pointer",
+      color: "#fff",
+      fontSize: 11,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: 700,
+      padding: 0
+    }
+  }, "\u2715")))), recordForm.images.length < 3 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => fileInputRef.current?.click(),
+    style: {
+      width: "100%",
+      padding: "14px",
+      borderRadius: 10,
+      border: "2px dashed rgba(255,255,255,0.12)",
+      background: "rgba(255,255,255,0.03)",
+      cursor: "pointer",
+      color: "#8B949E",
+      fontSize: 13,
+      fontFamily: "inherit",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, "\uD83D\uDCF7 \uC0AC\uC9C4 \uCD94\uAC00\uD558\uAE30 (", recordForm.images.length, "/3)"), /*#__PURE__*/React.createElement("input", {
+    ref: fileInputRef,
+    type: "file",
+    accept: "image/*",
+    multiple: true,
+    onChange: handleImageUpload,
+    style: {
+      display: "none"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: {
+      fontSize: 11,
+      color: "#8B949E",
+      marginBottom: 6,
+      display: "block"
+    }
+  }, "\uBA54\uBAA8"), /*#__PURE__*/React.createElement("textarea", {
+    value: recordForm.memo,
+    onChange: e => setRecordForm({
+      ...recordForm,
+      memo: e.target.value
+    }),
+    placeholder: "\uCEE8\uB514\uC158, \uB0A0\uC528, \uB290\uB080 \uC810...",
+    rows: 3,
+    style: {
+      ...inputCenter,
+      textAlign: "left",
+      resize: "vertical",
+      fontFamily: "inherit",
+      fontSize: 13,
+      lineHeight: 1.5
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAddModal(null),
+    style: {
+      flex: 1,
+      padding: "12px",
+      borderRadius: 10,
+      border: "none",
+      cursor: "pointer",
+      background: "rgba(255,255,255,0.06)",
+      color: "#8B949E",
+      fontSize: 14,
+      fontWeight: 600,
+      fontFamily: "inherit"
+    }
+  }, "\uCDE8\uC18C"), /*#__PURE__*/React.createElement("button", {
+    onClick: submitRecord,
+    style: {
+      flex: 2,
+      padding: "12px",
+      borderRadius: 10,
+      border: "none",
+      cursor: "pointer",
+      background: "linear-gradient(135deg,#E8432A,#FF6B35)",
+      color: "#fff",
+      fontSize: 14,
+      fontWeight: 700,
+      fontFamily: "inherit",
+      boxShadow: "0 4px 16px rgba(232,67,42,0.3)"
+    }
+  }, "\uC800\uC7A5\uD558\uAE30")))), viewingImage && /*#__PURE__*/React.createElement("div", {
+    onClick: () => setViewingImage(null),
+    style: {
+      position: "fixed",
+      inset: 0,
+      background: "rgba(0,0,0,0.92)",
+      zIndex: 300,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      backdropFilter: "blur(8px)",
+      cursor: "pointer",
+      padding: 16
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setViewingImage(null),
+    style: {
+      position: "absolute",
+      top: 16,
+      right: 16,
+      width: 36,
+      height: 36,
+      borderRadius: "50%",
+      background: "rgba(255,255,255,0.15)",
+      border: "none",
+      cursor: "pointer",
+      color: "#fff",
+      fontSize: 18,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 301
+    }
+  }, "\u2715"), /*#__PURE__*/React.createElement("img", {
+    src: viewingImage,
+    style: {
+      maxWidth: "100%",
+      maxHeight: "85vh",
+      objectFit: "contain",
+      borderRadius: 12
+    }
+  })), /*#__PURE__*/React.createElement("style", null, `
+        @keyframes fadeSlideIn { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+        @keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+        @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+        input::placeholder, textarea::placeholder { color:rgba(139,148,158,0.5) }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none }
+        input[type=number] { -moz-appearance:textfield }
+        ::-webkit-scrollbar { width:3px } ::-webkit-scrollbar-track { background:transparent } ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.1); border-radius:4px }
+        * { -webkit-tap-highlight-color:transparent }
+      `));
+}
+
+// Mount Race Schedule app
+let _raceRendered = false;
+window._mountRaceApp = function () {
+  if (_raceRendered) return;
+  const root = document.getElementById('race-root');
+  if (!root) return;
+  try {
+    ReactDOM.createRoot(root).render(React.createElement(RaceScheduleApp));
+    _raceRendered = true;
+  } catch (e) {
+    console.error('Race app mount error:', e);
+  }
+};
 </script>
 </body>
 </html>
