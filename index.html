@@ -78,12 +78,13 @@
 
     /* HEADER */
     .header {
-      padding: 52px 24px 24px; border-bottom: 1px solid var(--border);
+      padding: 16px 20px 14px; padding-top: max(16px, env(safe-area-inset-top, 16px));
+      border-bottom: 1px solid var(--border);
       position: relative; overflow: hidden;
     }
     .routine-date-nav {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
     .routine-nav-btn {
       width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border);
@@ -92,47 +93,78 @@
       -webkit-tap-highlight-color: transparent; transition: all 0.15s;
     }
     .routine-nav-btn:active { background: var(--surface); }
-    .routine-date-center { text-align: center; cursor: pointer; }
+    .routine-date-center { text-align: center; cursor: pointer; flex: 1; }
 
-    /* HORIZONTAL SPLIT LAYOUT */
-    .routine-split {
-      display: flex; border-top: 1px solid var(--border);
-      min-height: 0; /* flex child can shrink */
+    /* ── 루틴 진행 원형 ── */
+    .routine-hero {
+      display: flex; align-items: center; gap: 16px;
+      padding: 14px 20px 12px;
     }
-    .routine-split-left {
-      flex: 1; min-width: 0;
-      border-right: 1px solid var(--border);
-      max-height: 55vh; overflow-y: auto;
+    .routine-ring {
+      width: 56px; height: 56px; position: relative; flex-shrink: 0;
     }
-    .routine-split-right {
-      flex: 1; min-width: 0;
-      max-height: 55vh; overflow-y: auto;
+    .routine-ring svg { width: 56px; height: 56px; transform: rotate(-90deg); }
+    .routine-ring-count {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 15px; color: #f0f0f0; font-weight: 500;
     }
-    .split-panel-label {
+    .routine-hero-info { flex: 1; }
+    .routine-hero-streak {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: #a78bfa; background: var(--purple-glow); border: 1px solid #7c3aed44;
+      padding: 3px 10px; border-radius: 14px; margin-bottom: 4px;
+    }
+    .routine-hero-msg {
+      font-size: 12px; color: var(--muted); line-height: 1.4;
+    }
+
+    /* ── 루틴 세그먼트 탭 ── */
+    .routine-seg {
+      display: flex; gap: 4px; padding: 0 20px 12px;
+    }
+    .routine-seg-btn {
+      flex: 1; padding: 9px 0; border-radius: 10px;
+      border: 1px solid var(--border); background: none;
+      color: var(--muted); font-family: 'Noto Serif KR', serif;
+      font-size: 13px; cursor: pointer; transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .routine-seg-btn.active {
+      background: var(--purple); border-color: var(--purple); color: white;
+    }
+    .routine-seg-btn .seg-count {
       font-family: 'JetBrains Mono', monospace; font-size: 10px;
-      letter-spacing: 2px; color: var(--muted); text-transform: uppercase;
-      padding: 12px 12px 4px; position: sticky; top: 0;
-      background: var(--bg); z-index: 2;
+      opacity: 0.7;
     }
-    /* 분할 영역 안 습관 아이템 컴팩트화 */
-    .routine-split .habit-item { margin-bottom: 6px; }
-    .routine-split .habit-row { padding: 10px 12px; gap: 10px; }
-    .routine-split .habit-emoji { font-size: 16px; }
-    .routine-split .habit-name { font-size: 13px; }
-    .routine-split .habit-time { font-size: 9px; }
-    .routine-split .checkbox { width: 20px; height: 20px; }
-    .routine-split .check-icon { font-size: 11px; }
-    .routine-split .section-label { margin-bottom: 8px; margin-top: 4px; }
-    /* 분할 영역 안 챌린지 컴팩트화 */
-    .routine-split .plus-card { margin-bottom: 8px; }
-    .routine-split .plus-card-head { padding: 12px; }
-    .routine-split .plus-card-name { font-size: 14px; }
-    .routine-split .plus-today-num { font-size: 18px; }
-    .routine-split .plus-add-btn { padding: 10px; font-size: 12px; }
+
+    /* ── 루틴 패널 (세로 전체폭) ── */
+    .routine-panel { display: none; }
+    .routine-panel.active { display: block; }
+
+    /* ── 동기화 접기/펼치기 ── */
+    .sync-accordion-btn {
+      width: 100%; padding: 12px 20px; display: flex; align-items: center; gap: 8px;
+      background: none; border: none; border-top: 1px solid var(--border);
+      color: var(--muted); font-family: 'JetBrains Mono', monospace; font-size: 10px;
+      letter-spacing: 2px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    .sync-accordion-btn .sync-arrow { transition: transform 0.2s; font-size: 8px; }
+    .sync-accordion-btn.open .sync-arrow { transform: rotate(90deg); }
+    .sync-accordion-body {
+      max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+    }
+    .sync-accordion-body.open { max-height: 600px; }
+
+    /* 기존 분할 레이아웃 — 미사용 (하위호환 유지) */
+    .routine-split { display: none; }
+    .routine-split-left, .routine-split-right { display: none; }
+    .split-panel-label { display: none; }
 
     .header::before {
-      content: ''; position: absolute; top: -80px; left: -60px;
-      width: 240px; height: 240px;
+      content: ''; position: absolute; top: -60px; left: -40px;
+      width: 180px; height: 180px;
       background: radial-gradient(circle, #7c3aed18 0%, #7c3aed08 40%, transparent 70%);
       pointer-events: none; animation: headerGlow 4s ease-in-out infinite alternate;
     }
@@ -1243,6 +1275,7 @@
 
 <!-- ====== ROUTINE PAGE ====== -->
 <div class="page" id="page-routine">
+  <!-- 헤더: 날짜 내비 -->
   <div class="header">
     <div class="routine-date-nav">
       <button class="routine-nav-btn" onclick="routineNav(-1)">‹</button>
@@ -1252,136 +1285,154 @@
       </div>
       <button class="routine-nav-btn" onclick="routineNav(1)">›</button>
     </div>
-    <div class="progress-section" style="border-bottom:none;padding:10px 0 0;">
-      <div class="progress-header">
-        <div class="progress-label" id="progressLabel">오늘의 진행</div>
-        <div class="progress-count" id="progressCount">0 / 4</div>
-      </div>
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+  </div>
+
+  <!-- 원형 진행률 + 스트릭 -->
+  <div class="routine-hero">
+    <div class="routine-ring" id="routineRing">
+      <svg viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="24" fill="none" stroke="var(--border)" stroke-width="3"/>
+        <circle cx="28" cy="28" r="24" fill="none" stroke="var(--purple)" stroke-width="3"
+          stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8"
+          id="progressRingCircle" style="transition: stroke-dashoffset 0.6s ease;"/>
+      </svg>
+      <div class="routine-ring-count"><span id="progressCount">0/4</span></div>
     </div>
-    <div class="streak-row">
-      <div class="streak-badge" id="streakBadge">🔥 0일 연속</div>
-      <div class="streak-text" id="streakText">오늘부터 시작</div>
+    <div class="routine-hero-info">
+      <div class="routine-hero-streak" id="streakBadge">🔥 0일 연속</div>
+      <div class="routine-hero-msg" id="streakText">오늘부터 시작</div>
     </div>
   </div>
 
-  <!-- 가로 분할 영역 -->
-  <div class="routine-split">
-    <!-- 왼쪽: 루틴 -->
-    <div class="routine-split-left">
-      <div class="split-panel-label">☀️ 루틴</div>
-      <div class="habits-section" style="padding:8px 12px;">
-        <div class="section-label">아침</div>
-        <div class="habit-item" data-cat="anchor" data-id="wake">
-          <div class="habit-row" onclick="toggle(this.parentElement, event)">
-            <div class="habit-emoji">🌙</div>
-            <div class="habit-info"><div class="habit-time">04:00</div><div class="habit-name">기상</div></div>
-            <button class="note-btn" onclick="toggleNote(event, 'wake')" title="메모">✏️</button>
-            <div class="checkbox"><span class="check-icon">✓</span></div>
-          </div>
-          <div class="habit-note-area" id="note-wake">
-            <textarea class="habit-note-input" placeholder="오늘 컨디션, 기분..." oninput="saveNote('wake', this.value)" onclick="event.stopPropagation()"></textarea>
-          </div>
-        </div>
-        <div class="habit-item" data-cat="move" data-id="exercise">
-          <div class="habit-row" onclick="toggle(this.parentElement, event)">
-            <div class="habit-emoji">🏋️</div>
-            <div class="habit-info"><div class="habit-time">04:30</div><div class="habit-name">운동</div></div>
-            <button class="note-btn" onclick="toggleNote(event, 'exercise')" title="메모">✏️</button>
-            <div class="checkbox"><span class="check-icon">✓</span></div>
-          </div>
-          <div class="habit-note-area" id="note-exercise">
-            <textarea class="habit-note-input" placeholder="오늘 운동 내용, 컨디션..." oninput="saveNote('exercise', this.value)" onclick="event.stopPropagation()"></textarea>
-          </div>
-        </div>
-        <div class="section-label" style="margin-top:12px">저녁</div>
-        <div class="habit-item" data-cat="rest" data-id="reading">
-          <div class="habit-row" onclick="toggle(this.parentElement, event)">
-            <div class="habit-emoji">📚</div>
-            <div class="habit-info"><div class="habit-time">20:30</div><div class="habit-name">독서</div></div>
-            <button class="note-btn" onclick="toggleNote(event, 'reading')" title="메모">✏️</button>
-            <div class="checkbox"><span class="check-icon">✓</span></div>
-          </div>
-          <div class="habit-note-area" id="note-reading">
-            <textarea class="habit-note-input" placeholder="오늘 읽은 책, 인상 깊은 문장..." oninput="saveNote('reading', this.value)" onclick="event.stopPropagation()"></textarea>
-          </div>
-        </div>
-        <div class="habit-item" data-cat="create" data-id="writing">
-          <div class="habit-row" onclick="toggle(this.parentElement, event)">
-            <div class="habit-emoji">✍️</div>
-            <div class="habit-info"><div class="habit-time">21:00</div><div class="habit-name">글</div></div>
-            <button class="note-btn" onclick="toggleNote(event, 'writing')" title="메모">✏️</button>
-            <div class="checkbox"><span class="check-icon">✓</span></div>
-          </div>
-          <div class="habit-note-area" id="note-writing">
-            <textarea class="habit-note-input" placeholder="오늘 쓴 내용, 소설 아이디어..." oninput="saveNote('writing', this.value)" onclick="event.stopPropagation()"></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="calendar-section" style="padding:8px 12px 12px;">
-        <div class="section-label">이번 주</div>
-        <div class="week-grid" id="weekGrid"></div>
-      </div>
-    </div>
-
-    <!-- 오른쪽: 하루 더하기 -->
-    <div class="routine-split-right">
-      <div class="split-panel-label">➕ 하루 더하기</div>
-      <div class="plus-challenge-list" id="plusList" style="padding:8px 12px;"></div>
-    </div>
+  <!-- 주간 캘린더 -->
+  <div style="padding:0 20px 14px;">
+    <div class="week-grid" id="weekGrid"></div>
   </div>
 
-  <!-- 하단: 동기화 + 초기화 (전체 폭) -->
-  <div class="sync-section">
-    <div class="section-label">☁️ GOOGLE DRIVE 동기화</div>
-    <div class="sync-card" id="syncCard">
-      <div id="syncSetup">
-        <div class="sync-setup-note">
-          Google Drive에 데이터를 저장하면<br>여러 기기에서 동기화할 수 있어.<br><br>
-          <strong style="color:#a78bfa;">설정 방법 (5분):</strong><br>
-          ① <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a> 접속 → 프로젝트 만들기<br>
-          ② 왼쪽 메뉴 API 및 서비스 → 라이브러리<br>
-          &nbsp;&nbsp;&nbsp;→ "Google Drive API" 검색 → <strong>사용</strong> 클릭<br>
-          ③ 왼쪽 Google Auth Platform → Branding<br>
-          &nbsp;&nbsp;&nbsp;→ 앱 이름 입력, 이메일 입력 후 저장<br>
-          ④ Audience → 외부 선택 → 저장<br>
-          ⑤ Clients → Create Client<br>
-          &nbsp;&nbsp;&nbsp;→ 유형: <strong>웹 애플리케이션</strong><br>
-          &nbsp;&nbsp;&nbsp;→ 승인된 자바스크립트 원본에 추가:<br>
-          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#10b981;font-family:'JetBrains Mono',monospace;font-size:10px;">https://너의아이디.github.io</span><br>
-          ⑥ 만들어진 <strong>클라이언트 ID</strong>를 아래에 붙여넣기
+  <!-- 세그먼트: 루틴 / 챌린지 -->
+  <div class="routine-seg">
+    <button class="routine-seg-btn active" id="rseg-habits" onclick="routineSwitchSeg('habits')">
+      ☀️ 루틴 <span class="seg-count" id="rseg-habits-count"></span>
+    </button>
+    <button class="routine-seg-btn" id="rseg-plus" onclick="routineSwitchSeg('plus')">
+      ➕ 하루 더하기 <span class="seg-count" id="rseg-plus-count"></span>
+    </button>
+  </div>
+
+  <!-- 패널: 루틴 -->
+  <div class="routine-panel active" id="rpanel-habits">
+    <div class="habits-section" style="padding:4px 20px 16px;">
+      <div class="section-label">아침</div>
+      <div class="habit-item" data-cat="anchor" data-id="wake">
+        <div class="habit-row" onclick="toggle(this.parentElement, event)">
+          <div class="habit-emoji">🌙</div>
+          <div class="habit-info"><div class="habit-time">04:00</div><div class="habit-name">기상</div></div>
+          <button class="note-btn" onclick="toggleNote(event, 'wake')" title="메모">✏️</button>
+          <div class="checkbox"><span class="check-icon">✓</span></div>
         </div>
-        <input class="sync-id-input" id="syncClientId" placeholder="xxxx.apps.googleusercontent.com" />
-        <button class="sync-id-save" onclick="gdSaveClientId()">저장</button>
-        <div style="clear:both;"></div>
+        <div class="habit-note-area" id="note-wake">
+          <textarea class="habit-note-input" placeholder="오늘 컨디션, 기분..." oninput="saveNote('wake', this.value)" onclick="event.stopPropagation()"></textarea>
+        </div>
       </div>
-      <div id="syncMain" style="display:none;">
-        <div class="sync-header">
-          <div class="sync-header-icon">☁️</div>
-          <div class="sync-header-info">
-            <div class="sync-header-title">Google Drive</div>
-            <div class="sync-header-status" id="syncStatus">로그인 필요</div>
-          </div>
+      <div class="habit-item" data-cat="move" data-id="exercise">
+        <div class="habit-row" onclick="toggle(this.parentElement, event)">
+          <div class="habit-emoji">🏋️</div>
+          <div class="habit-info"><div class="habit-time">04:30</div><div class="habit-name">운동</div></div>
+          <button class="note-btn" onclick="toggleNote(event, 'exercise')" title="메모">✏️</button>
+          <div class="checkbox"><span class="check-icon">✓</span></div>
         </div>
-        <div id="syncLoggedOut">
-          <button class="sync-login-btn" onclick="gdSignIn()">
-            <span style="font-size:16px;">🔑</span> Google 계정으로 로그인
-          </button>
+        <div class="habit-note-area" id="note-exercise">
+          <textarea class="habit-note-input" placeholder="오늘 운동 내용, 컨디션..." oninput="saveNote('exercise', this.value)" onclick="event.stopPropagation()"></textarea>
         </div>
-        <div id="syncLoggedIn" style="display:none;">
-          <div class="sync-actions">
-            <button class="sync-btn upload" id="syncUpBtn" onclick="gdUpload()">☁️↑ 업로드</button>
-            <button class="sync-btn download" id="syncDnBtn" onclick="gdDownload()">☁️↓ 다운로드</button>
-          </div>
-          <div class="sync-actions" style="margin-top:6px;">
-            <button class="sync-btn logout" onclick="gdSignOut()">로그아웃</button>
-            <button class="sync-btn logout" onclick="gdChangeClientId()">Client ID 변경</button>
-          </div>
-          <div class="sync-last" id="syncLast"></div>
+      </div>
+      <div class="section-label" style="margin-top:14px">저녁</div>
+      <div class="habit-item" data-cat="rest" data-id="reading">
+        <div class="habit-row" onclick="toggle(this.parentElement, event)">
+          <div class="habit-emoji">📚</div>
+          <div class="habit-info"><div class="habit-time">20:30</div><div class="habit-name">독서</div></div>
+          <button class="note-btn" onclick="toggleNote(event, 'reading')" title="메모">✏️</button>
+          <div class="checkbox"><span class="check-icon">✓</span></div>
+        </div>
+        <div class="habit-note-area" id="note-reading">
+          <textarea class="habit-note-input" placeholder="오늘 읽은 책, 인상 깊은 문장..." oninput="saveNote('reading', this.value)" onclick="event.stopPropagation()"></textarea>
+        </div>
+      </div>
+      <div class="habit-item" data-cat="create" data-id="writing">
+        <div class="habit-row" onclick="toggle(this.parentElement, event)">
+          <div class="habit-emoji">✍️</div>
+          <div class="habit-info"><div class="habit-time">21:00</div><div class="habit-name">글</div></div>
+          <button class="note-btn" onclick="toggleNote(event, 'writing')" title="메모">✏️</button>
+          <div class="checkbox"><span class="check-icon">✓</span></div>
+        </div>
+        <div class="habit-note-area" id="note-writing">
+          <textarea class="habit-note-input" placeholder="오늘 쓴 내용, 소설 아이디어..." oninput="saveNote('writing', this.value)" onclick="event.stopPropagation()"></textarea>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- 패널: 하루 더하기 -->
+  <div class="routine-panel" id="rpanel-plus">
+    <div class="plus-challenge-list" id="plusList" style="padding:8px 20px;"></div>
+  </div>
+
+  <!-- 동기화 (접기) -->
+  <button class="sync-accordion-btn" id="syncAccBtn" onclick="toggleSyncAccordion()">
+    <span class="sync-arrow">▶</span> GOOGLE DRIVE 동기화
+    <span id="syncStatusMini" style="margin-left:auto;font-size:9px;color:#333;">설정 필요</span>
+  </button>
+  <div class="sync-accordion-body" id="syncAccBody">
+    <div class="sync-section" style="border-top:none;margin-top:0;">
+      <div class="sync-card" id="syncCard">
+        <div id="syncSetup">
+          <div class="sync-setup-note">
+            Google Drive에 데이터를 저장하면<br>여러 기기에서 동기화할 수 있어.<br><br>
+            <strong style="color:#a78bfa;">설정 방법 (5분):</strong><br>
+            ① <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a> 접속 → 프로젝트 만들기<br>
+            ② 왼쪽 메뉴 API 및 서비스 → 라이브러리<br>
+            &nbsp;&nbsp;&nbsp;→ "Google Drive API" 검색 → <strong>사용</strong> 클릭<br>
+            ③ 왼쪽 Google Auth Platform → Branding<br>
+            &nbsp;&nbsp;&nbsp;→ 앱 이름 입력, 이메일 입력 후 저장<br>
+            ④ Audience → 외부 선택 → 저장<br>
+            ⑤ Clients → Create Client<br>
+            &nbsp;&nbsp;&nbsp;→ 유형: <strong>웹 애플리케이션</strong><br>
+            &nbsp;&nbsp;&nbsp;→ 승인된 자바스크립트 원본에 추가:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#10b981;font-family:'JetBrains Mono',monospace;font-size:10px;">https://너의아이디.github.io</span><br>
+            ⑥ 만들어진 <strong>클라이언트 ID</strong>를 아래에 붙여넣기
+          </div>
+          <input class="sync-id-input" id="syncClientId" placeholder="xxxx.apps.googleusercontent.com" />
+          <button class="sync-id-save" onclick="gdSaveClientId()">저장</button>
+          <div style="clear:both;"></div>
+        </div>
+        <div id="syncMain" style="display:none;">
+          <div class="sync-header">
+            <div class="sync-header-icon">☁️</div>
+            <div class="sync-header-info">
+              <div class="sync-header-title">Google Drive</div>
+              <div class="sync-header-status" id="syncStatus">로그인 필요</div>
+            </div>
+          </div>
+          <div id="syncLoggedOut">
+            <button class="sync-login-btn" onclick="gdSignIn()">
+              <span style="font-size:16px;">🔑</span> Google 계정으로 로그인
+            </button>
+          </div>
+          <div id="syncLoggedIn" style="display:none;">
+            <div class="sync-actions">
+              <button class="sync-btn upload" id="syncUpBtn" onclick="gdUpload()">☁️↑ 업로드</button>
+              <button class="sync-btn download" id="syncDnBtn" onclick="gdDownload()">☁️↓ 다운로드</button>
+            </div>
+            <div class="sync-actions" style="margin-top:6px;">
+              <button class="sync-btn logout" onclick="gdSignOut()">로그아웃</button>
+              <button class="sync-btn logout" onclick="gdChangeClientId()">Client ID 변경</button>
+            </div>
+            <div class="sync-last" id="syncLast"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="reset-section">
     <button class="reset-btn" onclick="resetToday()">오늘 초기화</button>
     <button class="reset-btn" style="color:#ef4444;border-color:#ef444444;" onclick="resetAllData()">전체 데이터 초기화</button>
@@ -1515,31 +1566,31 @@
     <div style="display:flex;align-items:flex-start;justify-content:space-between;">
       <div>
         <div class="nat-header-title">🌿 수확</div>
-        <div class="nat-header-sub">채취 달력 · 파종 기록</div>
+        <div class="nat-header-sub">파종 기록 · 채취 달력</div>
       </div>
     </div>
     <div class="nat-seg">
-      <button class="nat-seg-btn active" id="nat-seg-harvest" onclick="natSwitchSeg('harvest')">🍃 채취 달력</button>
-      <button class="nat-seg-btn" id="nat-seg-sow" onclick="natSwitchSeg('sow')">🌱 파종 기록</button>
+      <button class="nat-seg-btn active" id="nat-seg-sow" onclick="natSwitchSeg('sow')">🌱 파종 기록</button>
+      <button class="nat-seg-btn" id="nat-seg-harvest" onclick="natSwitchSeg('harvest')">🍃 채취 달력</button>
     </div>
-  </div>
-
-  <!-- 채취 달력 -->
-  <div id="nat-harvest-view">
-    <div class="harvest-add-bar">
-      <button class="harvest-add-btn" onclick="hvOpenModal()">＋ 항목 추가</button>
-    </div>
-    <div class="harvest-body" id="harvestBody"></div>
   </div>
 
   <!-- 파종 기록 -->
-  <div id="nat-sow-view" style="display:none;">
+  <div id="nat-sow-view">
     <div class="sow-toolbar">
       <div style="font-size:11px;color:var(--muted);" id="sow-count"></div>
       <button class="sow-add-btn" onclick="sowOpenModal(null)">＋ 기록 추가</button>
     </div>
     <div class="sow-filter-row" id="sowFilterRow"></div>
     <div class="sow-list" id="sowList"></div>
+  </div>
+
+  <!-- 채취 달력 -->
+  <div id="nat-harvest-view" style="display:none;">
+    <div class="harvest-add-bar">
+      <button class="harvest-add-btn" onclick="hvOpenModal()">＋ 항목 추가</button>
+    </div>
+    <div class="harvest-body" id="harvestBody"></div>
   </div>
 </div>
 
@@ -2231,8 +2282,21 @@
   function updateUI() {
     const done  = getViewDone();
     const count = Object.values(done).filter(Boolean).length;
-    document.getElementById('progressCount').textContent = `${count} / ${HABITS.length}`;
-    document.getElementById('progressBar').style.width   = Math.round(count/HABITS.length*100)+'%';
+    const pct = count / HABITS.length;
+
+    // 원형 프로그레스 링
+    document.getElementById('progressCount').textContent = `${count}/${HABITS.length}`;
+    const circle = document.getElementById('progressRingCircle');
+    if(circle) {
+      const circumference = 2 * Math.PI * 24; // r=24
+      circle.setAttribute('stroke-dashoffset', String(circumference * (1 - pct)));
+      circle.setAttribute('stroke', count === HABITS.length ? '#10b981' : '#7c3aed');
+    }
+
+    // (하위호환) 기존 progressBar가 있으면 업데이트
+    const bar = document.getElementById('progressBar');
+    if(bar) bar.style.width = Math.round(pct*100)+'%';
+
     const streak = calcStreak();
     document.getElementById('streakBadge').textContent = `🔥 ${streak}일 연속`;
     document.getElementById('streakText').textContent  = streak===0 ? '오늘부터 시작' : `${streak}일째 지속 중`;
@@ -2245,10 +2309,35 @@
     const dateStr = `${vd.getFullYear()}년 ${mo[vd.getMonth()]} ${vd.getDate()}일 (${dowNames[vd.getDay()]})`;
     document.getElementById('dateLabel').textContent = dateStr;
     document.getElementById('routineTodayBadge').style.display = isToday ? 'none' : '';
-    document.getElementById('progressLabel').textContent = isToday ? '오늘의 진행' : `${vd.getMonth()+1}/${vd.getDate()} 진행`;
 
-    // 미래 날짜는 내비 버튼 비활성화
+    // 세그먼트 카운트 업데이트
+    const hcEl = document.getElementById('rseg-habits-count');
+    if(hcEl) hcEl.textContent = count === HABITS.length ? '✓' : `${count}/${HABITS.length}`;
+    const pcEl = document.getElementById('rseg-plus-count');
+    if(pcEl) {
+      const challenges = getChallenges();
+      pcEl.textContent = challenges.length > 0 ? challenges.length : '';
+    }
+
     renderWeek();
+  }
+
+  /* ── 루틴 세그먼트 전환 ── */
+  let _routineSeg = 'habits';
+  function routineSwitchSeg(seg) {
+    _routineSeg = seg;
+    document.getElementById('rpanel-habits').classList.toggle('active', seg==='habits');
+    document.getElementById('rpanel-plus').classList.toggle('active', seg==='plus');
+    document.getElementById('rseg-habits').classList.toggle('active', seg==='habits');
+    document.getElementById('rseg-plus').classList.toggle('active', seg==='plus');
+  }
+
+  /* ── 동기화 아코디언 ── */
+  function toggleSyncAccordion() {
+    const btn = document.getElementById('syncAccBtn');
+    const body = document.getElementById('syncAccBody');
+    btn.classList.toggle('open');
+    body.classList.toggle('open');
   }
   function renderWeek() {
     const state=getRoutine(); const grid=document.getElementById('weekGrid');
@@ -2808,7 +2897,64 @@
     document.getElementById('lt-update-arrow').style.transform=ltUpdOpen?"rotate(180deg)":"none";
   }
 
-  // CORS 프록시 다중 폴백 (병렬 레이싱 + 순차 폴백)
+  // ── AI API로 여러 회차 한번에 조회 (Claude 환경) ──
+  async function ltBatchFetchViaAI(startRound, endRound) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        messages: [{
+          role: "user",
+          content: `한국 로또 6/45 ${startRound}회차부터 ${endRound}회차까지 당첨번호를 검색해서 알려줘.
+반드시 아래 JSON 배열 형식으로만 응답. 설명 없이 순수 JSON만:
+[{"round":회차번호,"nums":[번호1,번호2,번호3,번호4,번호5,번호6],"bonus":보너스번호,"date":"YYYY-MM-DD"}]
+아직 추첨 전인 회차는 목록에서 제외.`
+        }]
+      })
+    });
+    if(!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    const text = (data.content || []).filter(c => c.type === "text").map(c => c.text).join("\n");
+    const arrMatch = text.match(/\[[\s\S]*\]/);
+    if(!arrMatch) throw new Error('배열 없음');
+    const parsed = JSON.parse(arrMatch[0]);
+    if(!Array.isArray(parsed) || !parsed.length) throw new Error('빈 결과');
+    return parsed.filter(r => r.nums && r.nums.length === 6 && r.bonus && r.round);
+  }
+
+  // ── CORS 프록시로 단일 회차 조회 (독립 호스팅용) ──
+  async function ltFetchViaProxy(round) {
+    const lottoUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${round}`;
+    const mkUrls = [
+      url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+      url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+      url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+      url => `https://corsproxy.org/?${encodeURIComponent(url)}`,
+    ];
+    // 직접 호출
+    try {
+      const r = await fetch(lottoUrl, { signal: AbortSignal.timeout(3000) });
+      if(r.ok) { const t=await r.text(); if(t.trim().startsWith('{')) { const d=JSON.parse(t); if(d.returnValue==='success') return d; }}
+    } catch(e){}
+    // 프록시 병렬
+    return await Promise.any(mkUrls.map(async mk => {
+      const r = await fetch(mk(lottoUrl), { signal: AbortSignal.timeout(12000), headers:{'Accept':'*/*'} });
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const t = await r.text();
+      // allorigins /get 형식 처리
+      let json = t;
+      try { const wrap=JSON.parse(t); if(wrap.contents) json=wrap.contents; } catch(e){}
+      if(!json.trim().startsWith('{')) throw new Error('not json');
+      const d = JSON.parse(json);
+      if(d.returnValue !== 'success') throw new Error('no data');
+      return d;
+    }));
+  }
+
+  // (하위호환) 날씨 등에서 사용하던 fetchWithCorsProxy 유지
   async function fetchWithCorsProxy(targetUrl, timeout = 15000) {
     const proxies = [
       {
@@ -2916,68 +3062,56 @@
     const runBtn=document.getElementById('lt-run-btn');
     runBtn.textContent="⏳ 업데이트 중...";runBtn.disabled=true;
     const cf={...ltFreq};let cl=ltLast;
-    let consecutiveFails = 0;
+    const nr=document.getElementById('lt-new-rounds');
 
-    for(let r=ltLast+1;r<=exp;r++){
-      logEl.innerHTML+=`<div>🔍 ${r}회차 조회 중...</div>`;logEl.scrollTop=logEl.scrollHeight;
+    function addRoundUI(r) {
+      logEl.innerHTML+=`<div>✅ ${r.round}회차 (${r.date||''}): ${r.nums.join(" · ")} +${r.bonus}</div>`;
+      nr.innerHTML+=`<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r.round}회차</span><span style="font-size:10px;color:#444;">${r.date||''}</span></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${r.nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(r.bonus,30)}</div>
+      </div>`;
+      logEl.scrollTop=logEl.scrollHeight;
+    }
 
-      let success = false;
-      for(let retry = 0; retry < 2; retry++) {
-        try{
-          const lottoUrl = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${r}`;
-          const text = await fetchWithCorsProxy(lottoUrl);
-          const data = JSON.parse(text);
-
-          if(!data || data.returnValue !== 'success') throw new Error('데이터 없음 (아직 추첨 전일 수 있음)');
-
-          const nums = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
-          const bonus = data.bnusNo;
-          const date = data.drwNoDate || '';
-
-          if(nums.some(n => !n) || !bonus) throw new Error('번호 데이터 오류');
-
-          [...nums, bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
-          cl = r;
-          consecutiveFails = 0;
-
-          logEl.innerHTML+=`<div>✅ ${r}회차 (${date}): ${nums.join(" · ")} +${bonus}</div>`;
-          logEl.scrollTop=logEl.scrollHeight;
-          const nr=document.getElementById('lt-new-rounds');
-          nr.innerHTML+=`<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r}회차</span><span style="font-size:10px;color:#444;">${date}</span></div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(bonus,30)}</div>
-          </div>`;
-          success = true;
-          break;
-        }catch(e){
-          if(retry === 0) {
-            logEl.innerHTML+=`<div>⏳ ${r}회차 재시도 중...</div>`;
-            logEl.scrollTop=logEl.scrollHeight;
-            await new Promise(res=>setTimeout(res,1500));
-          } else {
-            logEl.innerHTML+=`<div>❌ ${r}회차 실패: ${e.message}</div>`;
-            logEl.scrollTop=logEl.scrollHeight;
-          }
-        }
+    // ── 1차: AI API 일괄 조회 (Claude 환경) ──
+    logEl.innerHTML+=`<div>🤖 AI 검색으로 ${ltLast+1}~${exp}회차 조회 중...</div>`;logEl.scrollTop=logEl.scrollHeight;
+    try {
+      const results = await ltBatchFetchViaAI(ltLast+1, exp);
+      logEl.innerHTML+=`<div>📡 ${results.length}개 회차 수신 완료</div>`;
+      for(const r of results) {
+        [...r.nums, r.bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
+        if(r.round > cl) cl = r.round;
+        addRoundUI(r);
       }
+      ltFreq={...cf};ltLast=cl;await ltSaveData();ltUpdateHeader();
+      logEl.innerHTML+=`<div>📊 ${cl}회차까지 저장 완료!</div>`;logEl.scrollTop=logEl.scrollHeight;
+      runBtn.textContent="지금 업데이트";runBtn.disabled=false;ltUpdating=false;
+      return;
+    } catch(e) {
+      logEl.innerHTML+=`<div>⚠️ AI 방식 실패 (${e.message}) → 프록시 방식으로 전환</div>`;logEl.scrollTop=logEl.scrollHeight;
+    }
 
-      if(!success) {
-        consecutiveFails++;
-        if(consecutiveFails >= 3) {
-          logEl.innerHTML+=`<div>⛔ 연속 실패 — 업데이트 중단. 나중에 다시 시도해줘.</div>`;
-          logEl.scrollTop=logEl.scrollHeight;
-          break;
-        }
-        // 아직 추첨 전 회차면 여기서 종료
+    // ── 2차: CORS 프록시 개별 조회 (독립 환경) ──
+    for(let r=ltLast+1;r<=exp;r++){
+      logEl.innerHTML+=`<div>🔍 ${r}회차 프록시 조회 중...</div>`;logEl.scrollTop=logEl.scrollHeight;
+      try{
+        const data = await ltFetchViaProxy(r);
+        const nums = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
+        const bonus = data.bnusNo;
+        const date = data.drwNoDate || '';
+        if(nums.some(n => !n) || !bonus) throw new Error('번호 오류');
+        [...nums, bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
+        cl = r;
+        addRoundUI({ round:r, nums, bonus, date });
+        if(r % 5 === 0) { ltFreq={...cf};ltLast=cl;await ltSaveData(); }
+        await new Promise(res=>setTimeout(res,400));
+      }catch(e){
+        logEl.innerHTML+=`<div>❌ ${r}회차 실패: ${e.message}</div>`;logEl.scrollTop=logEl.scrollHeight;
         break;
       }
-
-      // 중간 저장 (5회차마다)
-      if(r % 5 === 0) { ltFreq={...cf};ltLast=cl;await ltSaveData(); }
-      await new Promise(res=>setTimeout(res,400));
     }
     ltFreq={...cf};ltLast=cl;await ltSaveData();ltUpdateHeader();
-    if(cl > ltLast) logEl.innerHTML+=`<div>📊 ${cl}회차까지 저장 완료</div>`;
+    logEl.innerHTML+=`<div>📊 ${cl}회차까지 저장 완료</div>`;logEl.scrollTop=logEl.scrollHeight;
     runBtn.textContent="지금 업데이트";runBtn.disabled=false;ltUpdating=false;
   }
 
@@ -4003,6 +4137,7 @@
     document.getElementById('nat-seg-harvest').classList.toggle('active', seg==='harvest');
     document.getElementById('nat-seg-sow').classList.toggle('active', seg==='sow');
     if(seg==='sow') sowRender();
+    if(seg==='harvest') natRenderHarvest();
   }
 
   // ── 채취 달력 렌더 ──
@@ -4692,16 +4827,19 @@
     const clientId = gdGetClientId();
     const setupEl = document.getElementById('syncSetup');
     const mainEl = document.getElementById('syncMain');
+    const mini = document.getElementById('syncStatusMini');
 
     if(!clientId) {
       setupEl.style.display = '';
       mainEl.style.display = 'none';
       document.getElementById('syncClientId').value = '';
+      if(mini) { mini.textContent = '설정 필요'; mini.style.color = '#333'; }
     } else {
       setupEl.style.display = 'none';
       mainEl.style.display = '';
       gdInitTokenClient();
       gdUpdateLastSync();
+      if(mini) { mini.textContent = '준비됨'; mini.style.color = '#a78bfa'; }
     }
   }
 
@@ -4709,6 +4847,12 @@
     const el = document.getElementById('syncStatus');
     el.textContent = text;
     el.className = 'sync-header-status' + (cls ? ' ' + cls : '');
+    // 미니 상태 텍스트 업데이트
+    const mini = document.getElementById('syncStatusMini');
+    if(mini) {
+      mini.textContent = text;
+      mini.style.color = cls === 'connected' ? '#10b981' : cls === 'error' ? '#ef4444' : '#333';
+    }
   }
 
   function gdShowLoggedIn(show) {
@@ -6045,7 +6189,7 @@ function RaceScheduleApp() {
     setUpdating(true);
     setUpdateMsg("최신 대회 일정을 검색 중...");
     try {
-      const existingNames = allRaces.map(r => r.name).join(", ");
+      const currentYear = new Date().getFullYear();
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -6053,33 +6197,57 @@ function RaceScheduleApp() {
         },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 4000,
+          max_tokens: 4096,
           tools: [{
             type: "web_search_20250305",
             name: "web_search"
           }],
           messages: [{
             role: "user",
-            content: `한국 마라톤, 트레일러닝, 울트라마라톤 대회 최신 일정을 검색해줘.
-기존 목록: ${existingNames}
-위 목록에 없는 새 대회만 찾아서 JSON 배열로만 응답해. 설명 없이 순수 JSON만:
-[{"name":"대회명","date":"YYYY-MM-DD","location":"출발지","type":"road/trail/ultra","distance":"대표거리","difficulty":1~5,"elevation":"누적고도","fee":"참가비","region":"서울/경기/강원/충청/전라/경상/제주","distances":["종목1","종목2"]}]
-새 대회가 없으면 []`
+            content: `${currentYear}년~${currentYear+1}년 한국 마라톤, 트레일러닝, 울트라마라톤 대회 일정을 검색해줘.
+다음 대회들은 이미 있으니 제외: ${allRaces.slice(0,30).map(r => r.name).join(", ")}
+위 목록에 없는 새 대회만 찾아서 JSON 배열로 응답해. 설명이나 마크다운 없이 순수 JSON만:
+[{"name":"대회명","date":"YYYY-MM-DD","location":"개최지","type":"road","distance":"42.195km","difficulty":3,"elevation":"100m","fee":"₩50,000","region":"서울","distances":["풀코스","하프"]}]
+type은 road/trail/ultra 중 하나. region은 서울/경기/강원/충청/전라/경상/제주 중 하나.
+새 대회가 없으면 빈 배열 [] 만 응답.`
           }]
         })
       });
+
+      if (!res.ok) {
+        const status = res.status;
+        if (status === 401 || status === 403) {
+          throw new Error("API 인증 실패 — Claude 환경에서만 사용 가능합니다");
+        }
+        throw new Error(`서버 오류 (${status})`);
+      }
+
       const data = await res.json();
-      const text = data.content?.filter(c => c.type === "text").map(c => c.text).join("") || "";
+
+      // content에서 text 블록만 추출 (tool_use, tool_result 등 건너뜀)
+      const textBlocks = (data.content || []).filter(c => c.type === "text");
+      const text = textBlocks.map(c => c.text).join("\n");
+
       let parsed = [];
       try {
-        const m = text.replace(/```json|```/g, "").trim().match(/\[[\s\S]*\]/);
+        // JSON 배열 추출 (```json 블록 또는 순수 배열)
+        const cleaned = text.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+        const m = cleaned.match(/\[[\s\S]*\]/);
         if (m) parsed = JSON.parse(m[0]);
-      } catch {}
+      } catch (parseErr) {
+        console.warn("Race JSON parse error:", parseErr, "raw text:", text);
+      }
+
       const ts = new Date().toISOString();
       if (parsed.length > 0) {
-        const newRaces = parsed.map((r, i) => ({
+        // 유효성 검증: 필수 필드 확인
+        const validRaces = parsed.filter(r => r.name && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/));
+        const newRaces = validRaces.map((r, i) => ({
           ...r,
           id: 900000 + Date.now() + i,
+          difficulty: r.difficulty || 3,
+          region: r.region || "기타",
+          distances: r.distances || [r.distance || "미정"],
           isFetched: true
         }));
         const combined = [...fetchedRaces, ...newRaces];
@@ -6102,11 +6270,19 @@ function RaceScheduleApp() {
         } catch {}
         setUpdateMsg("✅ 이미 최신 상태입니다.");
       }
-    } catch {
-      setUpdateMsg("⚠️ 업데이트 실패. 나중에 다시 시도해주세요.");
+    } catch (err) {
+      const msg = err.message || "알 수 없는 오류";
+      console.error("Race update error:", err);
+      if (msg.includes("인증") || msg.includes("401") || msg.includes("403")) {
+        setUpdateMsg("⚠️ Claude 환경에서만 업데이트 가능합니다. (API 인증 필요)");
+      } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        setUpdateMsg("⚠️ 네트워크 연결을 확인해주세요.");
+      } else {
+        setUpdateMsg(`⚠️ 업데이트 실패: ${msg}`);
+      }
     }
     setUpdating(false);
-    setTimeout(() => setUpdateMsg(null), 4000);
+    setTimeout(() => setUpdateMsg(null), 5000);
   };
   const openAddRecord = (raceId, e) => {
     if (e) e.stopPropagation();
