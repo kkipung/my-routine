@@ -2897,121 +2897,115 @@
     document.getElementById('lt-update-arrow').style.transform=ltUpdOpen?"rotate(180deg)":"none";
   }
 
-  // ── 안전한 타임아웃 fetch (AbortSignal.timeout 없는 브라우저 호환) ──
-  function fetchTimeout(url, opts = {}, ms = 12000) {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), ms);
-    return fetch(url, { ...opts, signal: ctrl.signal })
-      .then(r => { clearTimeout(tid); return r; })
-      .catch(e => { clearTimeout(tid); throw e; });
+  // ── Anthropic API 호출 헬퍼 ──
+  async function callClaudeAPI(prompt, useSearch = true) {
+    const body = {
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }]
+    };
+    if(useSearch) body.tools = [{ type: "web_search_20250305", name: "web_search" }];
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok) throw new Error('API HTTP ' + res.status);
+    const data = await res.json();
+    if(data.type === 'error') throw new Error(data.error?.message || 'API error');
+    // 모든 text 블록 합치기
+    return (data.content || [])
+      .filter(c => c.type === "text")
+      .map(c => c.text)
+      .join("\n");
   }
 
-  // ── 로또 단일 회차 조회 (프록시 병렬 레이싱) ──
-  async function ltFetchRound(round) {
-    const target = `https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${round}`;
-
-    // 각 프록시별 올바른 URL 형식 (인코딩 여부가 다름!)
-    const proxies = [
-      { name:'corsproxy.io',   mk: u => `https://corsproxy.io/?${u}` },                           // raw URL
-      { name:'allorigins-raw', mk: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
-      { name:'allorigins-get', mk: u => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`, wrap:true },
-      { name:'codetabs',       mk: u => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}` },
-      { name:'corsproxy.org',  mk: u => `https://corsproxy.org/?${encodeURIComponent(u)}` },
-    ];
-
-    // 직접 호출 (동일 도메인이면 성공)
-    try {
-      const r = await fetchTimeout(target, {}, 3000);
-      if(r.ok) { const t=await r.text(); if(t.trim().startsWith('{')) { const d=JSON.parse(t); if(d.returnValue==='success') return d; }}
-    } catch(e){}
-
-    // 모든 프록시 동시 호출 → 가장 먼저 성공하는 것 채택
-    return await Promise.any(proxies.map(async proxy => {
-      const r = await fetchTimeout(proxy.mk(target), { headers:{'Accept':'*/*'} }, 15000);
-      if(!r.ok) throw new Error(proxy.name + ': HTTP ' + r.status);
-      let text = await r.text();
-      // allorigins /get은 {contents:"..."} 래핑
-      if(proxy.wrap) {
-        try { const w = JSON.parse(text); text = w.contents || text; } catch(e){}
-      }
-      if(!text.trim().startsWith('{')) throw new Error(proxy.name + ': not JSON');
-      const d = JSON.parse(text);
-      if(d.returnValue !== 'success') throw new Error(proxy.name + ': not success');
-      return d;
-    }));
-  }
-
+  // ── 로또 업데이트: Anthropic API로 조회 ──
   async function ltRunUpdate(){
     if(ltUpdating) return;
     const exp = ltCalcExpected();
     if(ltLast >= exp) { showToast('이미 최신 상태야'); return; }
     ltUpdating = true;
     const logEl = document.getElementById('lt-log');
-    logEl.style.display = "block";
-    logEl.innerHTML = "";
+    logEl.style.display = "block"; logEl.innerHTML = "";
     document.getElementById('lt-new-rounds').innerHTML = "";
     const runBtn = document.getElementById('lt-run-btn');
-    runBtn.textContent = "⏳ 업데이트 중...";
-    runBtn.disabled = true;
-    const cf = {...ltFreq};
-    let cl = ltLast;
+    runBtn.textContent = "⏳ 업데이트 중..."; runBtn.disabled = true;
+    const cf = {...ltFreq}; let cl = ltLast;
     const nr = document.getElementById('lt-new-rounds');
     const total = exp - ltLast;
 
-    logEl.innerHTML += `<div>📡 ${ltLast+1}~${exp}회차 (${total}개) 조회 시작...</div>`;
-    logEl.scrollTop = logEl.scrollHeight;
+    // 10개씩 배치로 나눠서 요청
+    const batchSize = Math.min(total, 10);
+    let startR = ltLast + 1;
 
-    for(let r = ltLast + 1; r <= exp; r++) {
-      logEl.innerHTML += `<div>🔍 ${r}회차 조회 중... (${r - ltLast}/${total})</div>`;
+    while(startR <= exp) {
+      const endR = Math.min(startR + batchSize - 1, exp);
+      const batchLabel = startR === endR ? `${startR}회차` : `${startR}~${endR}회차`;
+      logEl.innerHTML += `<div>🔍 ${batchLabel} 조회 중...</div>`;
       logEl.scrollTop = logEl.scrollHeight;
 
-      let retries = 0, success = false;
-      while(retries < 3 && !success) {
-        try {
-          const data = await ltFetchRound(r);
-          const nums = [data.drwtNo1, data.drwtNo2, data.drwtNo3, data.drwtNo4, data.drwtNo5, data.drwtNo6];
-          const bonus = data.bnusNo;
-          const date = data.drwNoDate || '';
-          if(nums.some(n => !n) || !bonus) throw new Error('번호 데이터 불완전');
+      try {
+        const prompt = startR === endR
+          ? `한국 로또 6/45 ${startR}회차 당첨번호를 알려줘. 반드시 아래 JSON만 응답해 (설명 금지):\n[{"round":${startR},"nums":[번호1,번호2,번호3,번호4,번호5,번호6],"bonus":보너스번호,"date":"YYYY-MM-DD"}]\n아직 추첨 전이면: []`
+          : `한국 로또 6/45 ${startR}회차부터 ${endR}회차까지 당첨번호를 알려줘. 반드시 아래 JSON 배열만 응답해 (설명 금지):\n[{"round":회차,"nums":[번호1,번호2,번호3,번호4,번호5,번호6],"bonus":보너스번호,"date":"YYYY-MM-DD"}]\n아직 추첨 전인 회차는 제외.`;
 
-          [...nums, bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
-          cl = r;
-          success = true;
+        const text = await callClaudeAPI(prompt, true);
 
-          logEl.innerHTML += `<div style="color:#10b981;">✅ ${r}회차 (${date}): ${nums.join(" · ")} +${bonus}</div>`;
-          nr.innerHTML += `<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r}회차</span><span style="font-size:10px;color:#444;">${date}</span></div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(bonus,30)}</div>
-          </div>`;
+        // JSON 배열 추출
+        const cleaned = text.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+        const arrMatch = cleaned.match(/\[[\s\S]*?\]/);
+        if(!arrMatch) {
+          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${batchLabel}: 응답 파싱 실패 (재시도)</div>`;
+          logEl.innerHTML += `<div style="color:#333;font-size:9px;max-height:60px;overflow:hidden;">${text.substring(0,200)}</div>`;
           logEl.scrollTop = logEl.scrollHeight;
-        } catch(e) {
-          retries++;
-          if(retries < 3) {
-            logEl.innerHTML += `<div style="color:#d97706;">⏳ ${r}회차 재시도 (${retries}/3)...</div>`;
-            logEl.scrollTop = logEl.scrollHeight;
-            await new Promise(res => setTimeout(res, 2000));
-          } else {
-            logEl.innerHTML += `<div style="color:#ef4444;">❌ ${r}회차 실패: ${e.message}</div>`;
-            logEl.innerHTML += `<div style="color:#555;font-size:10px;">💡 팁: 아직 추첨 전이거나, 네트워크 문제일 수 있어.</div>`;
-            logEl.scrollTop = logEl.scrollHeight;
+          // 배치 크기 줄여서 재시도
+          if(batchSize > 1 && startR === endR - batchSize + 1) {
+            // 1개씩 시도
+            startR = startR; // 같은 위치에서 재시작 (아래 증가 안 함)
           }
+          await new Promise(r => setTimeout(r, 2000));
+          startR = endR + 1;
+          continue;
         }
+
+        const parsed = JSON.parse(arrMatch[0]);
+        if(!Array.isArray(parsed)) throw new Error('배열 아님');
+
+        const valid = parsed.filter(r => r && r.nums && r.nums.length === 6 && r.bonus && r.round);
+        if(!valid.length) {
+          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${batchLabel}: 유효 데이터 없음 (아직 추첨 전일 수 있음)</div>`;
+          logEl.scrollTop = logEl.scrollHeight;
+          break;
+        }
+
+        for(const r of valid) {
+          [...r.nums, r.bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
+          if(r.round > cl) cl = r.round;
+          logEl.innerHTML += `<div style="color:#10b981;">✅ ${r.round}회차 (${r.date||''}): ${r.nums.join(" · ")} +${r.bonus}</div>`;
+          nr.innerHTML += `<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r.round}회차</span><span style="font-size:10px;color:#444;">${r.date||''}</span></div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${r.nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(r.bonus,30)}</div>
+          </div>`;
+        }
+        logEl.scrollTop = logEl.scrollHeight;
+
+        // 중간 저장
+        ltFreq={...cf}; ltLast=cl; await ltSaveData();
+
+        startR = endR + 1;
+        if(startR <= exp) await new Promise(r => setTimeout(r, 1000));
+      } catch(e) {
+        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${batchLabel} 실패: ${e.message}</div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+        break;
       }
-
-      if(!success) break;
-
-      // 5회차마다 중간 저장
-      if(r % 5 === 0) { ltFreq={...cf}; ltLast=cl; await ltSaveData(); }
-      await new Promise(res => setTimeout(res, 500));
     }
 
-    ltFreq = {...cf}; ltLast = cl; await ltSaveData(); ltUpdateHeader();
-    const updated = cl - (ltLast - (cl - ltLast));
+    ltFreq={...cf}; ltLast=cl; await ltSaveData(); ltUpdateHeader();
     logEl.innerHTML += `<div style="color:#a78bfa;font-weight:bold;">📊 ${cl}회차까지 저장 완료</div>`;
     logEl.scrollTop = logEl.scrollHeight;
-    runBtn.textContent = "지금 업데이트";
-    runBtn.disabled = false;
-    ltUpdating = false;
+    runBtn.textContent = "지금 업데이트"; runBtn.disabled = false; ltUpdating = false;
   }
 
   async function ltReset(){
@@ -6087,85 +6081,75 @@ function RaceScheduleApp() {
   const fetchLatestRaces = async () => {
     setUpdating(true);
     setUpdateMsg("최신 대회 일정을 검색 중...");
-
-    // 1차: Anthropic API (Claude 아티팩트 환경에서만 동작)
     try {
       const currentYear = new Date().getFullYear();
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          messages: [{
-            role: "user",
-            content: `${currentYear}년~${currentYear+1}년 한국 마라톤, 트레일러닝, 울트라마라톤 대회 일정을 검색해줘.
-다음 대회들은 이미 있으니 제외: ${allRaces.slice(0,30).map(r => r.name).join(", ")}
-위 목록에 없는 새 대회만 찾아서 JSON 배열로 응답해. 설명 없이 순수 JSON만:
+      const existingNames = allRaces.map(r => r.name).slice(0, 40).join(", ");
+
+      // 2번 검색: 마라톤/로드 + 트레일/울트라
+      const prompts = [
+        `${currentYear}년~${currentYear+1}년 한국 마라톤, 하프마라톤, 로드 레이스 대회 일정을 웹에서 검색해서 알려줘.
+이미 있는 대회 제외: ${existingNames}
+위 목록에 없는 새 대회만 JSON 배열로 응답해. 설명 없이 JSON만:
 [{"name":"대회명","date":"YYYY-MM-DD","location":"개최지","type":"road","distance":"42.195km","difficulty":3,"elevation":"100m","fee":"₩50,000","region":"경상","distances":["풀코스","하프"]}]
-type: road/trail/ultra. region: 서울/경기/강원/충청/전라/경상/제주. 없으면 []`
-          }]
-        })
-      });
-      if(!res.ok) throw new Error('API ' + res.status);
-      const data = await res.json();
-      const text = (data.content || []).filter(c => c.type === "text").map(c => c.text).join("\n");
-      let parsed = [];
-      try {
-        const cleaned = text.replace(/```json\s*/g, "").replace(/```/g, "").trim();
-        const m = cleaned.match(/\[[\s\S]*\]/);
-        if(m) parsed = JSON.parse(m[0]);
-      } catch(pe) {}
+region: 서울/경기/강원/충청/전라/경상/제주. 없으면 []`,
+        `${currentYear}년~${currentYear+1}년 한국 트레일러닝, 울트라마라톤, 산악마라톤 대회 일정을 웹에서 검색해줘.
+이미 있는 대회 제외: ${existingNames}
+새 대회만 JSON 배열로 응답. 설명 없이 JSON만:
+[{"name":"대회명","date":"YYYY-MM-DD","location":"개최지","type":"trail","distance":"50km","difficulty":4,"elevation":"3000m","fee":"₩70,000","region":"강원","distances":["50km","25km"]}]
+type: trail 또는 ultra. region: 서울/경기/강원/충청/전라/경상/제주. 없으면 []`
+      ];
+
+      let allNew = [];
+      for(let i = 0; i < prompts.length; i++) {
+        setUpdateMsg(`검색 중... (${i+1}/${prompts.length})`);
+        try {
+          const text = await callClaudeAPI(prompts[i], true);
+          const cleaned = text.replace(/```json\s*/g, "").replace(/```/g, "").trim();
+          const m = cleaned.match(/\[[\s\S]*?\]/);
+          if(m) {
+            const parsed = JSON.parse(m[0]);
+            if(Array.isArray(parsed)) allNew.push(...parsed);
+          }
+        } catch(e) { console.warn("Race search " + (i+1) + " failed:", e.message); }
+        if(i < prompts.length - 1) await new Promise(r => setTimeout(r, 1000));
+      }
+
+      // 유효성 검증 + 중복 제거
+      const existingSet = new Set(allRaces.map(r => r.name.toLowerCase()));
+      const seen = new Set();
+      const validRaces = allNew.filter(r => {
+        if(!r || !r.name || !r.date || !r.date.match(/^\d{4}-\d{2}-\d{2}$/)) return false;
+        const key = r.name.toLowerCase();
+        if(existingSet.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).map((r, i) => ({
+        ...r,
+        id: 900000 + Date.now() + i,
+        difficulty: r.difficulty || 3,
+        type: ['road','trail','ultra'].includes(r.type) ? r.type : 'road',
+        region: r.region || "기타",
+        distances: r.distances || [r.distance || "미정"],
+        isFetched: true
+      }));
+
       const ts = new Date().toISOString();
-      if(parsed.length > 0) {
-        const validRaces = parsed.filter(r => r.name && r.date && r.date.match(/^\d{4}-\d{2}-\d{2}$/));
-        const newRaces = validRaces.map((r, i) => ({
-          ...r, id: 900000 + Date.now() + i, difficulty: r.difficulty || 3,
-          region: r.region || "기타", distances: r.distances || [r.distance || "미정"], isFetched: true
-        }));
-        const combined = [...fetchedRaces, ...newRaces];
+      if(validRaces.length > 0) {
+        const combined = [...fetchedRaces, ...validRaces];
         setFetchedRaces(combined); setLastUpdated(ts);
         try { await window.storage.set("race-fetched", JSON.stringify({ races: combined, timestamp: ts })); } catch {}
-        setUpdateMsg(`✅ ${newRaces.length}개 새 대회를 추가했습니다!`);
-        setUpdating(false); setTimeout(() => setUpdateMsg(null), 5000);
-        return;
+        setUpdateMsg(`✅ ${validRaces.length}개 새 대회를 추가했습니다!`);
+      } else {
+        setLastUpdated(ts);
+        try { await window.storage.set("race-fetched", JSON.stringify({ races: fetchedRaces, timestamp: ts })); } catch {}
+        setUpdateMsg("✅ 이미 최신 상태입니다.");
       }
-      setLastUpdated(ts);
-      try { await window.storage.set("race-fetched", JSON.stringify({ races: fetchedRaces, timestamp: ts })); } catch {}
-      setUpdateMsg("✅ 이미 최신 상태입니다.");
-      setUpdating(false); setTimeout(() => setUpdateMsg(null), 5000);
-      return;
-    } catch(e) {
-      // API 실패 → 수동 추가로 전환
-      console.log("Race API failed:", e.message);
+    } catch(err) {
+      console.error("Race update error:", err);
+      setUpdateMsg(`⚠️ 업데이트 실패: ${err.message}`);
     }
-
-    // 2차: 수동 대회 추가 (API 사용 불가 환경)
     setUpdating(false);
-    setUpdateMsg(null);
-    const name = window.prompt("🏃 대회 이름을 입력해줘\n(예: 춘천 마라톤)");
-    if(!name || !name.trim()) return;
-    const date = window.prompt("📅 날짜 (YYYY-MM-DD)\n(예: 2026-05-24)");
-    if(!date || !date.match(/^\d{4}-\d{2}-\d{2}$/)) { setUpdateMsg("⚠️ 날짜 형식이 올바르지 않아 (YYYY-MM-DD)"); setTimeout(()=>setUpdateMsg(null),3000); return; }
-    const location = window.prompt("📍 장소 (예: 강원 춘천)") || "";
-    const typeChoice = window.prompt("유형 (1=road, 2=trail, 3=ultra)") || "1";
-    const type = typeChoice === "2" ? "trail" : typeChoice === "3" ? "ultra" : "road";
-    const distance = window.prompt("대표 거리 (예: 42.195km, 50km)") || "";
-    const regionChoice = window.prompt("지역 (서울/경기/강원/충청/전라/경상/제주)") || "경상";
-
-    const newRace = {
-      id: 900000 + Date.now(), name: name.trim(), date, location, type,
-      distance, difficulty: type === "trail" ? 3 : type === "ultra" ? 4 : 2,
-      elevation: "-", fee: "-", region: regionChoice,
-      distances: [distance || "미정"], isFetched: true, isManual: true
-    };
-    const combined = [...fetchedRaces, newRace];
-    setFetchedRaces(combined);
-    setLastUpdated(new Date().toISOString());
-    try { await window.storage.set("race-fetched", JSON.stringify({ races: combined, timestamp: new Date().toISOString() })); } catch {}
-    setUpdateMsg(`✅ "${name.trim()}" 대회가 추가됐습니다!`);
-    setTimeout(() => setUpdateMsg(null), 4000);
+    setTimeout(() => setUpdateMsg(null), 5000);
   };
   const openAddRecord = (raceId, e) => {
     if (e) e.stopPropagation();
@@ -6431,7 +6415,7 @@ type: road/trail/ultra. region: 서울/경기/강원/충청/전라/경상/제주
       animation: updating ? "spin 1s linear infinite" : "none",
       fontSize: 13
     }
-  }, updating ? "⏳" : "🔄"), updating ? "검색 중..." : "대회 추가")), /*#__PURE__*/React.createElement("div", {
+  }, updating ? "⏳" : "🔄"), updating ? "검색 중..." : "일정 업데이트")), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       alignItems: "center",
@@ -6691,7 +6675,7 @@ type: road/trail/ultra. region: 서울/경기/강원/충청/전라/경상/제주
       cursor: "pointer"
     },
     onClick: fetchLatestRaces
-  }, "\uD83D\uDD04 \uB300\uD68C \uCD94\uAC00\uD558\uAE30")), filtered.map((race, idx) => {
+  }, "\uD83D\uDD04 \uC77C\uC815 \uC5C5\uB370\uC774\uD2B8\uB85C \uC0C8 \uB300\uD68C \uCC3E\uAE30")), filtered.map((race, idx) => {
     const isExp = selectedRace?.id === race.id;
     const hr = records[race.id];
     const past = isPast(race.date);
