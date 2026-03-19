@@ -1208,6 +1208,13 @@
       opacity: 1;
       animation: checkPop 0.3s cubic-bezier(0.34,1.56,0.64,1);
     }
+    /* HABIT DELETE */
+    .habit-del-btn {
+      background: none; border: none; color: #2a2a2a; font-size: 14px;
+      cursor: pointer; padding: 2px 6px; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent; transition: color 0.15s;
+    }
+    .habit-del-btn:active { color: #ef4444; }
   </style>
 </head>
 <body>
@@ -1322,52 +1329,8 @@
   <!-- 패널: 루틴 -->
   <div class="routine-panel active" id="rpanel-habits">
     <div class="habits-section" style="padding:4px 20px 16px;">
-      <div class="section-label">아침</div>
-      <div class="habit-item" data-cat="anchor" data-id="wake">
-        <div class="habit-row" onclick="toggle(this.parentElement, event)">
-          <div class="habit-emoji">🌙</div>
-          <div class="habit-info"><div class="habit-time">04:00</div><div class="habit-name">기상</div></div>
-          <button class="note-btn" onclick="toggleNote(event, 'wake')" title="메모">✏️</button>
-          <div class="checkbox"><span class="check-icon">✓</span></div>
-        </div>
-        <div class="habit-note-area" id="note-wake">
-          <textarea class="habit-note-input" placeholder="오늘 컨디션, 기분..." oninput="saveNote('wake', this.value)" onclick="event.stopPropagation()"></textarea>
-        </div>
-      </div>
-      <div class="habit-item" data-cat="move" data-id="exercise">
-        <div class="habit-row" onclick="toggle(this.parentElement, event)">
-          <div class="habit-emoji">🏋️</div>
-          <div class="habit-info"><div class="habit-time">04:30</div><div class="habit-name">운동</div></div>
-          <button class="note-btn" onclick="toggleNote(event, 'exercise')" title="메모">✏️</button>
-          <div class="checkbox"><span class="check-icon">✓</span></div>
-        </div>
-        <div class="habit-note-area" id="note-exercise">
-          <textarea class="habit-note-input" placeholder="오늘 운동 내용, 컨디션..." oninput="saveNote('exercise', this.value)" onclick="event.stopPropagation()"></textarea>
-        </div>
-      </div>
-      <div class="section-label" style="margin-top:14px">저녁</div>
-      <div class="habit-item" data-cat="rest" data-id="reading">
-        <div class="habit-row" onclick="toggle(this.parentElement, event)">
-          <div class="habit-emoji">📚</div>
-          <div class="habit-info"><div class="habit-time">20:30</div><div class="habit-name">독서</div></div>
-          <button class="note-btn" onclick="toggleNote(event, 'reading')" title="메모">✏️</button>
-          <div class="checkbox"><span class="check-icon">✓</span></div>
-        </div>
-        <div class="habit-note-area" id="note-reading">
-          <textarea class="habit-note-input" placeholder="오늘 읽은 책, 인상 깊은 문장..." oninput="saveNote('reading', this.value)" onclick="event.stopPropagation()"></textarea>
-        </div>
-      </div>
-      <div class="habit-item" data-cat="create" data-id="writing">
-        <div class="habit-row" onclick="toggle(this.parentElement, event)">
-          <div class="habit-emoji">✍️</div>
-          <div class="habit-info"><div class="habit-time">21:00</div><div class="habit-name">글</div></div>
-          <button class="note-btn" onclick="toggleNote(event, 'writing')" title="메모">✏️</button>
-          <div class="checkbox"><span class="check-icon">✓</span></div>
-        </div>
-        <div class="habit-note-area" id="note-writing">
-          <textarea class="habit-note-input" placeholder="오늘 쓴 내용, 소설 아이디어..." oninput="saveNote('writing', this.value)" onclick="event.stopPropagation()"></textarea>
-        </div>
-      </div>
+      <div id="habitsContainer"></div>
+      <button class="plus-add-btn" style="margin-top:10px;" onclick="openHabitModal()">＋ 루틴 추가</button>
     </div>
   </div>
 
@@ -1451,6 +1414,63 @@
     <div class="memo-count-label" id="memoCount">0개</div>
   </div>
   <div class="memo-list" id="memoList"></div>
+</div>
+
+<!-- HABIT ADD MODAL -->
+<div class="plus-modal-bg" id="habitModalBg" onclick="closeHabitModal(event)">
+  <div class="plus-modal">
+    <div class="plus-modal-title">루틴 추가</div>
+    <div class="plus-field">
+      <div class="plus-field-label">이름</div>
+      <input class="plus-input" id="habitNewName" placeholder="예: 명상, 일기, 스트레칭" />
+    </div>
+    <div class="plus-field">
+      <div class="plus-field-label">이모지</div>
+      <div class="plus-emoji-row" id="habitEmojiRow">
+        <button class="plus-emoji-opt sel" data-e="✨" onclick="habitSelEmoji(this)">✨</button>
+        <button class="plus-emoji-opt" data-e="🧘" onclick="habitSelEmoji(this)">🧘</button>
+        <button class="plus-emoji-opt" data-e="🏃" onclick="habitSelEmoji(this)">🏃</button>
+        <button class="plus-emoji-opt" data-e="💪" onclick="habitSelEmoji(this)">💪</button>
+        <button class="plus-emoji-opt" data-e="📝" onclick="habitSelEmoji(this)">📝</button>
+        <button class="plus-emoji-opt" data-e="🎵" onclick="habitSelEmoji(this)">🎵</button>
+        <button class="plus-emoji-opt" data-e="💊" onclick="habitSelEmoji(this)">💊</button>
+        <button class="plus-emoji-opt" data-e="🌅" onclick="habitSelEmoji(this)">🌅</button>
+        <button class="plus-emoji-opt" data-e="🧹" onclick="habitSelEmoji(this)">🧹</button>
+        <button class="plus-emoji-opt" data-e="🚶" onclick="habitSelEmoji(this)">🚶</button>
+        <button class="plus-emoji-opt" data-e="💤" onclick="habitSelEmoji(this)">💤</button>
+        <button class="plus-emoji-opt" data-e="🙏" onclick="habitSelEmoji(this)">🙏</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <div class="plus-field" style="flex:1;">
+        <div class="plus-field-label">시간</div>
+        <input type="time" class="plus-input" id="habitNewTime" value="07:00" />
+      </div>
+      <div class="plus-field" style="flex:1;">
+        <div class="plus-field-label">구분</div>
+        <select class="plus-input" id="habitNewSection" style="cursor:pointer;">
+          <option value="아침">아침</option>
+          <option value="오후">오후</option>
+          <option value="저녁">저녁</option>
+        </select>
+      </div>
+    </div>
+    <div class="plus-field">
+      <div class="plus-field-label">카테고리</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="cal-repeat-btn sel" data-cat="anchor" onclick="habitSelCat(this)" style="flex:none;padding:7px 12px;font-size:12px;">⚓ 기본</button>
+        <button class="cal-repeat-btn" data-cat="move" onclick="habitSelCat(this)" style="flex:none;padding:7px 12px;font-size:12px;">🏋️ 운동</button>
+        <button class="cal-repeat-btn" data-cat="create" onclick="habitSelCat(this)" style="flex:none;padding:7px 12px;font-size:12px;">✍️ 창작</button>
+        <button class="cal-repeat-btn" data-cat="body" onclick="habitSelCat(this)" style="flex:none;padding:7px 12px;font-size:12px;">🌿 건강</button>
+        <button class="cal-repeat-btn" data-cat="work" onclick="habitSelCat(this)" style="flex:none;padding:7px 12px;font-size:12px;">💼 업무</button>
+        <button class="cal-repeat-btn" data-cat="rest" onclick="habitSelCat(this)" style="flex:none;padding:7px 12px;font-size:12px;">📚 휴식</button>
+      </div>
+    </div>
+    <div class="plus-modal-actions">
+      <button class="plus-modal-cancel" onclick="closeHabitModal()">취소</button>
+      <button class="plus-modal-save" onclick="saveNewHabit()">추가하기</button>
+    </div>
+  </div>
 </div>
 
 <!-- ADD CHALLENGE MODAL -->
@@ -1936,7 +1956,24 @@
 </div>
 
 <script>
-  const HABITS = ['wake','exercise','reading','writing'];
+  const DEFAULT_HABITS = [
+    { id:'wake',     name:'기상', emoji:'🌙', time:'04:00', section:'아침', cat:'anchor', placeholder:'오늘 컨디션, 기분...' },
+    { id:'exercise', name:'운동', emoji:'🏋️', time:'04:30', section:'아침', cat:'move',   placeholder:'오늘 운동 내용, 컨디션...' },
+    { id:'writing',  name:'글',   emoji:'✍️', time:'20:30', section:'저녁', cat:'create', placeholder:'오늘 쓴 내용, 소설 아이디어...' },
+    { id:'reading',  name:'독서', emoji:'📚', time:'21:00', section:'저녁', cat:'rest',   placeholder:'오늘 읽은 책, 인상 깊은 문장...' },
+  ];
+  function getHabitList() {
+    const stored = localStorage.getItem('habitList');
+    if(stored) {
+      try { const arr = JSON.parse(stored); if(Array.isArray(arr) && arr.length) return arr; } catch(e) {}
+    }
+    return DEFAULT_HABITS;
+  }
+  function saveHabitList(list) { safeSetItem('habitList', JSON.stringify(list)); }
+  // HABITS는 이제 동적으로 id 배열 반환
+  function getHabitIds() { return getHabitList().map(h => h.id); }
+  // 하위호환: HABITS를 getter로 유지
+  let HABITS = getHabitIds();
   const DAYS   = ['일','월','화','수','목','금','토'];
 
   /* ── TOAST NOTIFICATION ── */
@@ -2173,8 +2210,9 @@
     updateUI();
     // 축하는 오늘 날짜에서만
     if(routineViewDate === todayKey()) {
-      const count = Object.values(done).filter(Boolean).length;
-      if(count === HABITS.length) {
+      const ids = getHabitIds();
+      const count = ids.filter(hid => !!done[hid]).length;
+      if(ids.length > 0 && count === ids.length) {
         setTimeout(() => {
           document.getElementById('celebration').classList.add('show');
           launchConfetti();
@@ -2249,7 +2287,7 @@
     const ok = await showConfirm('모든 데이터가 삭제돼.\n루틴, 일정, 메모, 챌린지, 완독,\n수확, 로또 기록이 전부 사라져.\n\n정말 초기화할까?', '전체 초기화');
     if(!ok) return;
     const keys = [
-      'myRoutine','habitNotes','notifSettings','memos',
+      'myRoutine','habitNotes','habitList','notifSettings','memos',
       'plusChallenges','plusChecks',
       'calEvents','calEvtDone',
       'bkBooks',
@@ -2269,20 +2307,24 @@
   }
   function calcStreak() {
     const state = getRoutine(); let streak=0; const d=new Date();
+    const ids = getHabitIds();
+    if(!ids.length) return 0;
     for(let i=0; i<365; i++) {
       const dd=new Date(d); dd.setDate(d.getDate()-i);
       const key=`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
-      const cnt = Object.values(state[key]||{}).filter(Boolean).length;
-      if(cnt===HABITS.length) { streak++; }
-      else if(i===0) { continue; /* 오늘 미완료는 스트릭 끊지 않음 */ }
+      const dayDone = state[key] || {};
+      const cnt = ids.filter(id => !!dayDone[id]).length;
+      if(cnt===ids.length) { streak++; }
+      else if(i===0) { continue; }
       else { break; }
     }
     return streak;
   }
   function updateUI() {
+    HABITS = getHabitIds();
     const done  = getViewDone();
-    const count = Object.values(done).filter(Boolean).length;
-    const pct = count / HABITS.length;
+    const count = HABITS.filter(id => !!done[id]).length;
+    const pct = HABITS.length > 0 ? count / HABITS.length : 0;
 
     // 원형 프로그레스 링
     document.getElementById('progressCount').textContent = `${count}/${HABITS.length}`;
@@ -2342,17 +2384,19 @@
   function renderWeek() {
     const state=getRoutine(); const grid=document.getElementById('weekGrid');
     grid.innerHTML='';
+    const ids = getHabitIds();
     const viewD = parseLocalDate(routineViewDate);
     const viewDow = viewD.getDay();
     const todayStr = todayKey();
     for(let i=0;i<7;i++){
       const d=new Date(viewD); d.setDate(viewD.getDate()-viewDow+i);
       const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const cnt=Object.values(state[key]||{}).filter(Boolean).length;
+      const dayDone = state[key] || {};
+      const cnt = ids.filter(id => !!dayDone[id]).length;
       const isToday = key === todayStr;
       const isView = key === routineViewDate;
       const cell=document.createElement('div');
-      cell.className='day-cell'+(isToday?' today':'')+(isView && !isToday?' selected':'')+(cnt===HABITS.length?' complete':cnt>0?' partial':'');
+      cell.className='day-cell'+(isToday?' today':'')+(isView && !isToday?' selected':'')+(ids.length>0 && cnt===ids.length?' complete':cnt>0?' partial':'');
       cell.innerHTML=`<div class="day-label">${DAYS[i]}</div><div class="day-dot"></div>`;
       cell.style.cursor = 'pointer';
       cell.onclick = () => { routineViewDate = key; routineLoadDate(); };
@@ -2377,11 +2421,7 @@
   }
 
   function routineLoadDate() {
-    const done = getViewDone();
-    document.querySelectorAll('.habit-item').forEach(el => {
-      el.classList.toggle('done', !!done[el.dataset.id]);
-    });
-    loadNotes();
+    renderHabits(); // 동적 렌더링 (done 상태 포함)
     updateUI();
     renderPlusPage();
   }
@@ -2428,6 +2468,110 @@
       ta.value = val;
       if(btn) btn.classList.toggle('has-note', !!val.trim());
     });
+  }
+
+  /* ── 루틴 동적 렌더링 ── */
+  function renderHabits() {
+    HABITS = getHabitIds(); // 갱신
+    const list = getHabitList();
+    const done = getViewDone();
+    const container = document.getElementById('habitsContainer');
+    if(!container) return;
+
+    // 섹션별 그룹
+    const sections = {};
+    list.forEach(h => {
+      const sec = h.section || '기타';
+      if(!sections[sec]) sections[sec] = [];
+      sections[sec].push(h);
+    });
+
+    const sectionOrder = ['아침','오후','저녁','기타'];
+    let html = '';
+    for(const sec of sectionOrder) {
+      const items = sections[sec];
+      if(!items || !items.length) continue;
+      html += `<div class="section-label" style="display:flex;align-items:center;justify-content:space-between;">${sec}</div>`;
+      items.forEach(h => {
+        const isDone = !!done[h.id];
+        html += `
+        <div class="habit-item ${isDone?'done':''}" data-cat="${escHtml(h.cat||'anchor')}" data-id="${escHtml(h.id)}">
+          <div class="habit-row" onclick="toggle(this.parentElement, event)">
+            <div class="habit-emoji">${h.emoji||'✨'}</div>
+            <div class="habit-info">
+              <div class="habit-time">${escHtml(h.time||'')}</div>
+              <div class="habit-name">${escHtml(h.name)}</div>
+            </div>
+            <button class="note-btn" onclick="toggleNote(event, '${escAttr(h.id)}')" title="메모">✏️</button>
+            <button class="habit-del-btn" onclick="deleteHabit(event,'${escAttr(h.id)}')" title="삭제">×</button>
+            <div class="checkbox"><span class="check-icon">✓</span></div>
+          </div>
+          <div class="habit-note-area" id="note-${escAttr(h.id)}">
+            <textarea class="habit-note-input" placeholder="${escHtml(h.placeholder||'메모...')}" oninput="saveNote('${escAttr(h.id)}', this.value)" onclick="event.stopPropagation()"></textarea>
+          </div>
+        </div>`;
+      });
+    }
+    container.innerHTML = html;
+    loadNotes();
+  }
+
+  /* ── 루틴 추가 모달 ── */
+  let _habitSelEmoji = '✨';
+  let _habitSelCat = 'anchor';
+
+  function habitSelEmoji(btn) {
+    _habitSelEmoji = btn.dataset.e;
+    document.querySelectorAll('#habitEmojiRow .plus-emoji-opt').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+  }
+  function habitSelCat(btn) {
+    _habitSelCat = btn.dataset.cat;
+    btn.closest('div').querySelectorAll('.cal-repeat-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+  }
+  function openHabitModal() {
+    _habitSelEmoji = '✨';
+    _habitSelCat = 'anchor';
+    document.getElementById('habitNewName').value = '';
+    document.getElementById('habitNewTime').value = '07:00';
+    document.getElementById('habitNewSection').value = '아침';
+    document.querySelectorAll('#habitEmojiRow .plus-emoji-opt').forEach((b,i) => b.classList.toggle('sel', i===0));
+    document.querySelector('#habitModalBg .cal-repeat-btn[data-cat="anchor"]')?.classList.add('sel');
+    document.getElementById('habitModalBg').classList.add('open');
+    setTimeout(() => document.getElementById('habitNewName').focus(), 350);
+  }
+  function closeHabitModal(e) {
+    if(e && e.target !== document.getElementById('habitModalBg')) return;
+    document.getElementById('habitModalBg').classList.remove('open');
+  }
+  function saveNewHabit() {
+    const name = document.getElementById('habitNewName').value.trim();
+    if(!name) { document.getElementById('habitNewName').focus(); return; }
+    const time = document.getElementById('habitNewTime').value || '';
+    const section = document.getElementById('habitNewSection').value || '아침';
+    const id = 'h_' + Date.now().toString(36);
+    const list = getHabitList();
+    list.push({
+      id, name, emoji: _habitSelEmoji, time, section, cat: _habitSelCat,
+      placeholder: `${name} 메모...`
+    });
+    saveHabitList(list);
+    document.getElementById('habitModalBg').classList.remove('open');
+    renderHabits();
+    updateUI();
+    showToast(`"${name}" 루틴이 추가됐어`);
+  }
+  async function deleteHabit(e, id) {
+    e.stopPropagation();
+    const list = getHabitList();
+    const h = list.find(x => x.id === id);
+    const ok = await showConfirm(`"${h?.name||id}" 루틴을 삭제할까?`);
+    if(!ok) return;
+    saveHabitList(list.filter(x => x.id !== id));
+    renderHabits();
+    updateUI();
+    showToast('루틴이 삭제됐어');
   }
 
 
@@ -2897,30 +3041,65 @@
     document.getElementById('lt-update-arrow').style.transform=ltUpdOpen?"rotate(180deg)":"none";
   }
 
-  // ── Anthropic API 호출 헬퍼 ──
-  async function callClaudeAPI(prompt, useSearch = true) {
+  // ── Anthropic API 호출 (디버그 로그 포함) ──
+  async function callClaudeAPI(prompt, useSearch, logEl) {
     const body = {
       model: "claude-sonnet-4-20250514",
       max_tokens: 4096,
       messages: [{ role: "user", content: prompt }]
     };
     if(useSearch) body.tools = [{ type: "web_search_20250305", name: "web_search" }];
+
+    if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ API 호출 (search=${!!useSearch})...</div>`;
+
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
-    if(!res.ok) throw new Error('API HTTP ' + res.status);
+
+    if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ HTTP ${res.status}</div>`;
+    if(!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status}: ${errText.substring(0, 100)}`);
+    }
+
     const data = await res.json();
+    if(logEl) {
+      logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ 응답 블록: ${(data.content||[]).map(c=>c.type).join(', ')}</div>`;
+      logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ stop: ${data.stop_reason||'?'}</div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
     if(data.type === 'error') throw new Error(data.error?.message || 'API error');
-    // 모든 text 블록 합치기
-    return (data.content || [])
-      .filter(c => c.type === "text")
-      .map(c => c.text)
-      .join("\n");
+
+    // text 블록 합치기
+    const texts = (data.content || []).filter(c => c.type === "text").map(c => c.text);
+    const result = texts.join("\n");
+
+    if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ text 길이: ${result.length}자</div>`;
+
+    if(!result.trim()) {
+      // text가 없으면 tool_result에서 텍스트 추출 시도
+      const toolTexts = (data.content || [])
+        .filter(c => c.type === "tool_result")
+        .map(c => {
+          if(typeof c.content === 'string') return c.content;
+          if(Array.isArray(c.content)) return c.content.map(x => x.text||'').join('');
+          return '';
+        })
+        .join("\n");
+      if(toolTexts.trim()) {
+        if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ tool_result에서 ${toolTexts.length}자 추출</div>`;
+        return toolTexts;
+      }
+      throw new Error('응답에 텍스트 없음 (블록: ' + (data.content||[]).map(c=>c.type).join(',') + ')');
+    }
+
+    return result;
   }
 
-  // ── 로또 업데이트: Anthropic API로 조회 ──
+  // ── 로또 업데이트 ──
   async function ltRunUpdate(){
     if(ltUpdating) return;
     const exp = ltCalcExpected();
@@ -2935,46 +3114,90 @@
     const nr = document.getElementById('lt-new-rounds');
     const total = exp - ltLast;
 
-    // 10개씩 배치로 나눠서 요청
-    const batchSize = Math.min(total, 10);
+    logEl.innerHTML += `<div>📡 ${ltLast+1}~${exp}회차 (${total}개) 업데이트 시작</div>`;
+
+    // 5개씩 배치
     let startR = ltLast + 1;
+    const batchSize = Math.min(total, 5);
 
     while(startR <= exp) {
       const endR = Math.min(startR + batchSize - 1, exp);
-      const batchLabel = startR === endR ? `${startR}회차` : `${startR}~${endR}회차`;
-      logEl.innerHTML += `<div>🔍 ${batchLabel} 조회 중...</div>`;
+      const label = startR === endR ? `${startR}회차` : `${startR}~${endR}회차`;
+      logEl.innerHTML += `<div style="margin-top:6px;">🔍 ${label} 조회 중...</div>`;
       logEl.scrollTop = logEl.scrollHeight;
 
-      try {
-        const prompt = startR === endR
-          ? `한국 로또 6/45 ${startR}회차 당첨번호를 알려줘. 반드시 아래 JSON만 응답해 (설명 금지):\n[{"round":${startR},"nums":[번호1,번호2,번호3,번호4,번호5,번호6],"bonus":보너스번호,"date":"YYYY-MM-DD"}]\n아직 추첨 전이면: []`
-          : `한국 로또 6/45 ${startR}회차부터 ${endR}회차까지 당첨번호를 알려줘. 반드시 아래 JSON 배열만 응답해 (설명 금지):\n[{"round":회차,"nums":[번호1,번호2,번호3,번호4,번호5,번호6],"bonus":보너스번호,"date":"YYYY-MM-DD"}]\n아직 추첨 전인 회차는 제외.`;
+      let text = '';
+      let success = false;
 
-        const text = await callClaudeAPI(prompt, true);
+      // 시도 1: 검색 없이 (빠름, 훈련 데이터에 있을 수 있음)
+      // 시도 2: 검색 포함 (최신 데이터)
+      for(const useSearch of [false, true]) {
+        try {
+          const prompt = `한국 로또 6/45 당첨번호를 알려줘.
+회차 범위: ${startR}회차${startR !== endR ? ` ~ ${endR}회차` : ''}
 
-        // JSON 배열 추출
-        const cleaned = text.replace(/```json\s*/g, '').replace(/```/g, '').trim();
-        const arrMatch = cleaned.match(/\[[\s\S]*?\]/);
-        if(!arrMatch) {
-          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${batchLabel}: 응답 파싱 실패 (재시도)</div>`;
-          logEl.innerHTML += `<div style="color:#333;font-size:9px;max-height:60px;overflow:hidden;">${text.substring(0,200)}</div>`;
+아래 JSON 배열 형식으로만 응답해. 배열 앞뒤로 설명이나 마크다운 없이 오직 JSON만:
+
+[{"round":${startR},"nums":[1,2,3,4,5,6],"bonus":7,"date":"2025-01-01"}]
+
+규칙:
+- nums는 당첨번호 6개 (오름차순)
+- bonus는 보너스 번호 1개
+- date는 추첨일
+- 아직 추첨 안 된 회차는 배열에서 제외
+- 빈 결과면 []`;
+
+          text = await callClaudeAPI(prompt, useSearch, logEl);
+          if(text.trim()) { success = true; break; }
+        } catch(e) {
+          logEl.innerHTML += `<div style="color:#d97706;font-size:10px;">⚠️ ${useSearch?'검색':'직접'} 실패: ${e.message}</div>`;
           logEl.scrollTop = logEl.scrollHeight;
-          // 배치 크기 줄여서 재시도
-          if(batchSize > 1 && startR === endR - batchSize + 1) {
-            // 1개씩 시도
-            startR = startR; // 같은 위치에서 재시작 (아래 증가 안 함)
-          }
-          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+
+      if(!success || !text.trim()) {
+        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${label}: API 호출 실패</div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+        break;
+      }
+
+      // JSON 추출 (여러 패턴 시도)
+      try {
+        const cleaned = text.replace(/```json\s*/g, '').replace(/```/g, '').trim();
+
+        // 패턴 1: 전체가 배열
+        // 패턴 2: 배열 부분만 추출
+        let jsonStr = null;
+        if(cleaned.startsWith('[')) {
+          jsonStr = cleaned;
+        } else {
+          const m = cleaned.match(/\[[\s\S]*?\]/);
+          if(m) jsonStr = m[0];
+        }
+
+        if(!jsonStr) {
+          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${label}: JSON 배열 없음</div>`;
+          logEl.innerHTML += `<div style="color:#333;font-size:9px;max-height:50px;overflow:hidden;word-break:break-all;">${cleaned.substring(0,300)}</div>`;
+          logEl.scrollTop = logEl.scrollHeight;
           startR = endR + 1;
+          await new Promise(r => setTimeout(r, 1000));
           continue;
         }
 
-        const parsed = JSON.parse(arrMatch[0]);
+        const parsed = JSON.parse(jsonStr);
         if(!Array.isArray(parsed)) throw new Error('배열 아님');
 
-        const valid = parsed.filter(r => r && r.nums && r.nums.length === 6 && r.bonus && r.round);
+        const valid = parsed.filter(r => {
+          if(!r || !r.round) return false;
+          if(!r.nums || !Array.isArray(r.nums) || r.nums.length !== 6) return false;
+          if(!r.bonus || typeof r.bonus !== 'number') return false;
+          if(r.nums.some(n => typeof n !== 'number' || n < 1 || n > 45)) return false;
+          if(r.bonus < 1 || r.bonus > 45) return false;
+          return true;
+        });
+
         if(!valid.length) {
-          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${batchLabel}: 유효 데이터 없음 (아직 추첨 전일 수 있음)</div>`;
+          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${label}: 유효 데이터 0건 (추첨 전일 수 있음)</div>`;
           logEl.scrollTop = logEl.scrollHeight;
           break;
         }
@@ -2989,21 +3212,20 @@
           </div>`;
         }
         logEl.scrollTop = logEl.scrollHeight;
-
-        // 중간 저장
         ltFreq={...cf}; ltLast=cl; await ltSaveData();
 
-        startR = endR + 1;
-        if(startR <= exp) await new Promise(r => setTimeout(r, 1000));
       } catch(e) {
-        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${batchLabel} 실패: ${e.message}</div>`;
+        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${label} 파싱 실패: ${e.message}</div>`;
         logEl.scrollTop = logEl.scrollHeight;
         break;
       }
+
+      startR = endR + 1;
+      if(startR <= exp) await new Promise(r => setTimeout(r, 1500));
     }
 
     ltFreq={...cf}; ltLast=cl; await ltSaveData(); ltUpdateHeader();
-    logEl.innerHTML += `<div style="color:#a78bfa;font-weight:bold;">📊 ${cl}회차까지 저장 완료</div>`;
+    logEl.innerHTML += `<div style="color:#a78bfa;font-weight:bold;margin-top:6px;">📊 ${cl}회차까지 저장 완료</div>`;
     logEl.scrollTop = logEl.scrollHeight;
     runBtn.textContent = "지금 업데이트"; runBtn.disabled = false; ltUpdating = false;
   }
@@ -4682,7 +4904,7 @@
   const GD_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
   const GD_FILE_NAME = 'my-routine-sync.json';
   const GD_ALL_KEYS = [
-    'myRoutine','habitNotes','notifSettings','memos',
+    'myRoutine','habitNotes','habitList','notifSettings','memos',
     'plusChallenges','plusChecks',
     'calEvents','calEvtDone',
     'bkBooks',
