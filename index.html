@@ -895,13 +895,26 @@
     .grow-stage-name { font-size:13px; color:#ccc; flex:1; }
     .grow-stage-date { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--green); }
     .grow-stage-days { font-family:'JetBrains Mono',monospace; font-size:9px; color:#f59e0b; background:#f59e0b10; border:1px solid #f59e0b20; border-radius:4px; padding:1px 5px; margin-top:4px; display:inline-block; }
+    .grow-stage-images { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+    .grow-stage-img {
+      width:52px; height:52px; object-fit:cover; border-radius:6px;
+      border:1px solid rgba(255,255,255,0.1); cursor:pointer;
+      transition: transform 0.15s;
+    }
+    .grow-stage-img:active { transform:scale(0.95); }
+    .grow-img-remove {
+      position:absolute; top:-5px; right:-5px; width:18px; height:18px;
+      border-radius:50%; background:#ef4444; border:2px solid #111;
+      cursor:pointer; color:#fff; font-size:10px; display:flex;
+      align-items:center; justify-content:center; font-weight:700; padding:0;
+    }
     .grow-add-stage-btn { width:100%; padding:9px; border-radius:10px; border:1px dashed var(--border); background:none; color:#444; font-family:'Noto Serif KR',serif; font-size:12px; cursor:pointer; margin-top:8px; }
     .grow-add-stage-btn:active { border-color:var(--green); color:var(--green); }
 
     /* 생육 단계 입력 모달 */
     .grow-modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:105; display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity 0.2s; }
     .grow-modal-bg.open { opacity:1; pointer-events:all; }
-    .grow-modal { width:100%; background:#111; border-radius:20px 20px 0 0; border:1px solid var(--border); border-bottom:none; padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px)); transform:translateY(100%); transition:transform 0.3s cubic-bezier(.4,0,.2,1); }
+    .grow-modal { width:100%; background:#111; border-radius:20px 20px 0 0; border:1px solid var(--border); border-bottom:none; padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px)); transform:translateY(100%); transition:transform 0.3s cubic-bezier(.4,0,.2,1); max-height:90vh; overflow-y:auto; }
     .grow-modal-bg.open .grow-modal { transform:translateY(0); }
     .grow-preset-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
     .grow-preset-btn { padding:5px 10px; border-radius:8px; border:1px solid var(--border); background:none; color:var(--muted); font-size:12px; cursor:pointer; font-family:'Noto Serif KR',serif; }
@@ -1660,6 +1673,15 @@
       <div class="sow-field-label">메모 (선택)</div>
       <input class="sow-input" id="growStageNote" placeholder="예: 발아율 80%, 잎 3장" />
     </div>
+    <div class="sow-field">
+      <div class="sow-field-label">📷 사진 첨부 (최대 3장)</div>
+      <div id="growStageImgPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"></div>
+      <button type="button" id="growStageImgBtn" onclick="document.getElementById('growStageImgInput').click()"
+        style="width:100%;padding:12px;border-radius:10px;border:2px dashed rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);cursor:pointer;color:#8B949E;font-size:13px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;">
+        📷 사진 추가하기
+      </button>
+      <input type="file" id="growStageImgInput" accept="image/*" multiple onchange="growHandleImgUpload(this)" style="display:none;" />
+    </div>
     <input type="hidden" id="growStageEditId" />
     <div class="sow-modal-actions">
       <button class="sow-cancel" onclick="growCloseModal()">취소</button>
@@ -1929,6 +1951,12 @@
     </div>
 
   </div>
+</div>
+
+<!-- GROW IMAGE VIEWER -->
+<div id="growImgViewer" onclick="growCloseImgViewer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;align-items:center;justify-content:center;cursor:pointer;padding:16px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+  <button onclick="growCloseImgViewer()" style="position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.15);border:none;cursor:pointer;color:#fff;font-size:18px;display:flex;align-items:center;justify-content:center;z-index:301;">✕</button>
+  <img src="" style="max-width:100%;max-height:85vh;object-fit:contain;border-radius:12px;" onclick="event.stopPropagation();" />
 </div>
 
 <!-- TOAST CONTAINER -->
@@ -4589,6 +4617,7 @@
         stages.forEach((st, i) => {
         const d2s = daysBtwn(i === 0 ? seedDate : stages[i-1].date, st.date);
         const totalFromSeed = daysBtwn(seedDate, st.date);
+        const hasImages = Array.isArray(st.images) && st.images.length > 0;
         html += `
           <div class="grow-stage-row">
             <div class="grow-stage-dot done"></div>
@@ -4602,6 +4631,9 @@
                 ${totalFromSeed !== null && i > 0 ? ` · 파종 후 총 ${totalFromSeed}일` : ''}
               </div>` : ''}
               ${st.note ? `<div style="font-size:10px;color:#555;margin-top:4px;">${escHtml(st.note)}</div>` : ''}
+              ${hasImages ? `<div class="grow-stage-images">${st.images.map((src, imgIdx) =>
+                `<img class="grow-stage-img" src="${src}" onclick="event.stopPropagation();growViewImgDirect(this.src)" />`
+              ).join('')}</div>` : ''}
               <button style="float:right;background:none;border:none;color:#2a2a2a;font-size:12px;cursor:pointer;padding:2px 4px;" onclick="event.stopPropagation();growDeleteStage('${st.id}')">×</button>
             </div>
           </div>`;
@@ -4629,8 +4661,59 @@
     growPresetSel = '';
   }
 
+  let growStageImages = [];
+
+  function growRenderImgPreview() {
+    const el = document.getElementById('growStageImgPreview');
+    if(!el) return;
+    el.innerHTML = growStageImages.map((src, i) => `
+      <div style="position:relative;width:72px;height:72px;">
+        <img src="${src}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" />
+        <button onclick="growRemoveImg(${i})" class="grow-img-remove">✕</button>
+      </div>
+    `).join('');
+    const btn = document.getElementById('growStageImgBtn');
+    if(btn) btn.style.display = growStageImages.length >= 3 ? 'none' : '';
+  }
+
+  function growRemoveImg(idx) {
+    growStageImages.splice(idx, 1);
+    growRenderImgPreview();
+  }
+
+  function growResizeImg(file, maxW = 600, q = 0.7) {
+    return new Promise(res => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement('canvas');
+          let w = img.width, h = img.height;
+          if(w > maxW) { h = h * (maxW / w); w = maxW; }
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          res(c.toDataURL('image/jpeg', q));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function growHandleImgUpload(input) {
+    const files = Array.from(input.files);
+    if(!files.length) return;
+    for(const f of files.slice(0, 3 - growStageImages.length)) {
+      const data = await growResizeImg(f);
+      growStageImages.push(data);
+    }
+    growRenderImgPreview();
+    input.value = '';
+  }
+
   function growOpenModal(editId) {
     growPresetSel = '';
+    growStageImages = [];
     document.querySelectorAll('.grow-preset-btn').forEach(b => b.classList.remove('sel'));
     document.getElementById('growStageName').value  = '';
     document.getElementById('growStageDate').value  = todayKey();
@@ -4643,11 +4726,13 @@
         document.getElementById('growStageName').value = st.name  || '';
         document.getElementById('growStageDate').value = st.date  || todayKey();
         document.getElementById('growStageNote').value = st.note  || '';
+        growStageImages = Array.isArray(st.images) ? [...st.images] : [];
       }
       document.getElementById('growModalTitle').textContent = '생육 단계 수정';
     } else {
       document.getElementById('growModalTitle').textContent = '생육 단계 추가';
     }
+    growRenderImgPreview();
     document.getElementById('growModalBg').classList.add('open');
   }
 
@@ -4667,6 +4752,7 @@
       name,
       date: document.getElementById('growStageDate').value,
       note: document.getElementById('growStageNote').value.trim(),
+      images: growStageImages.slice(0, 3),
     };
     if(editId) {
       const idx = stages.findIndex(s => s.id === editId);
@@ -4677,6 +4763,7 @@
     all[growCurrentId] = stages;
     saveGrowLogs(all);
     document.getElementById('growModalBg').classList.remove('open');
+    growStageImages = [];
     const sowing = getSowings().find(s => s.id === growCurrentId);
     if(sowing) growRenderTimeline(sowing);
     sowRender(); // 파종 목록의 인라인 생육 기록도 갱신
@@ -4692,8 +4779,17 @@
     saveGrowLogs(all);
     const sowing = getSowings().find(s => s.id === growCurrentId);
     if(sowing) growRenderTimeline(sowing);
-    sowRender(); // 파종 목록의 인라인 생육 기록도 갱신
+    sowRender();
     showToast('생육 기록이 삭제됐어');
+  }
+
+  function growViewImgDirect(src) {
+    const viewer = document.getElementById('growImgViewer');
+    viewer.querySelector('img').src = src;
+    viewer.style.display = 'flex';
+  }
+  function growCloseImgViewer() {
+    document.getElementById('growImgViewer').style.display = 'none';
   }
 
   // ── 파종 기록 ──
