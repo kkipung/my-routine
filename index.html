@@ -1933,8 +1933,30 @@
           <div style="text-align:center;"><div style="font-size:10px;color:#555;margin-bottom:2px;">최신 회차</div><div id="lt-expected-round" style="font-size:22px;font-weight:900;"></div></div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:10px;">
-          <button id="lt-run-btn" onclick="ltRunUpdate()" style="flex:2;padding:11px 0;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Serif KR',serif;">지금 업데이트</button>
-          <button onclick="ltReset()" style="flex:1;padding:11px 0;border-radius:10px;border:1px solid #2a2a3a;background:transparent;color:#555;font-size:12px;cursor:pointer;font-family:'Noto Serif KR',serif;">초기화</button>
+          <button id="lt-run-btn" onclick="ltRunAutoUpdate()" style="flex:2;padding:11px 0;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Serif KR',serif;">자동 업데이트</button>
+          <button onclick="ltShowManual()" style="flex:1;padding:11px 0;border-radius:10px;border:1px solid #2a2a3a;background:transparent;color:#888;font-size:11px;cursor:pointer;font-family:'Noto Serif KR',serif;">수동 입력</button>
+          <button onclick="ltReset()" style="flex:1;padding:11px 0;border-radius:10px;border:1px solid #2a2a3a;background:transparent;color:#555;font-size:11px;cursor:pointer;font-family:'Noto Serif KR',serif;">초기화</button>
+        </div>
+        <!-- 수동 입력 폼 -->
+        <div id="lt-manual-form" style="display:none;background:#0d0d14;border:1px solid #1e1e2e;border-radius:12px;padding:14px;margin-bottom:10px;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-end;">
+            <div style="flex-shrink:0;">
+              <div style="font-size:9px;color:#555;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">회차</div>
+              <input type="number" id="lt-manual-round" style="width:70px;background:#080810;border:1px solid #2a2a3a;border-radius:8px;color:#f59e0b;font-family:'JetBrains Mono',monospace;font-size:14px;padding:8px;text-align:center;outline:none;" />
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:9px;color:#555;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">당첨번호 6개 (쉼표 또는 공백)</div>
+              <input type="text" id="lt-manual-nums" placeholder="예: 3 12 25 33 40 45" style="width:100%;background:#080810;border:1px solid #2a2a3a;border-radius:8px;color:#e0e0e0;font-family:'JetBrains Mono',monospace;font-size:13px;padding:8px 10px;outline:none;" />
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <div>
+              <div style="font-size:9px;color:#555;margin-bottom:4px;font-family:'JetBrains Mono',monospace;">보너스</div>
+              <input type="number" id="lt-manual-bonus" min="1" max="45" placeholder="보너스" style="width:70px;background:#080810;border:1px solid #2a2a3a;border-radius:8px;color:#10b981;font-family:'JetBrains Mono',monospace;font-size:14px;padding:8px;text-align:center;outline:none;" />
+            </div>
+            <button onclick="ltManualSave()" style="flex:1;padding:10px 0;border-radius:10px;border:none;background:linear-gradient(135deg,#8b5cf6,#3b82f6);color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'Noto Serif KR',serif;">저장</button>
+          </div>
+          <div style="font-size:9px;color:#333;margin-top:8px;line-height:1.5;">💡 <a href="https://dhlottery.co.kr" target="_blank" style="color:#8b5cf6;text-decoration:none;">동행복권</a>에서 당첨번호 확인 후 입력</div>
         </div>
         <div id="lt-log" style="display:none;background:#080810;border-radius:10px;padding:12px;max-height:150px;overflow-y:auto;border:1px solid #1a1a24;margin-bottom:10px;font-family:monospace;font-size:11px;color:#888;line-height:2;"></div>
         <div id="lt-new-rounds"></div>
@@ -2951,8 +2973,8 @@
   }
 
   /* ── 로또 ── */
-  const LT_BASE_FREQ = {34:181,27:180,12:177,13:174,18:172,33:173,40:172,37:171,45:171,3:169,14:170,17:169,38:169,7:168,1:167,20:167,16:166,19:166,39:165,11:164,21:164,26:164,31:164,6:163,24:163,15:163,36:162,43:162,35:161,44:160,4:159,10:159,8:155,30:156,5:153,42:153,2:152,29:152,28:151,25:150,41:147,23:146,22:141,32:141,9:133};
-  const LT_BASE_LAST = 1214;
+  const LT_BASE_FREQ = {34:181,27:180,12:177,13:175,18:172,33:173,40:172,37:171,45:172,3:169,14:170,17:169,38:169,7:168,1:167,20:167,16:166,19:167,39:166,11:164,21:165,26:164,31:164,6:163,24:163,15:164,36:162,43:162,35:161,44:161,4:159,10:159,8:155,30:156,5:153,42:153,2:152,29:152,28:151,25:150,41:147,23:146,22:141,32:141,9:133};
+  const LT_BASE_LAST = 1215;
   let ltFreq = null, ltLast = LT_BASE_LAST, ltHistory = [], ltUpdOpen = false, ltUpdating = false;
 
   // ltHistory 저장/불러오기
@@ -3069,193 +3091,153 @@
     document.getElementById('lt-update-arrow').style.transform=ltUpdOpen?"rotate(180deg)":"none";
   }
 
-  // ── Anthropic API 호출 (디버그 로그 포함) ──
-  async function callClaudeAPI(prompt, useSearch, logEl) {
-    const body = {
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }]
-    };
-    if(useSearch) body.tools = [{ type: "web_search_20250305", name: "web_search" }];
-
-    if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ API 호출 (search=${!!useSearch})...</div>`;
-
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
-    });
-
-    if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ HTTP ${res.status}</div>`;
-    if(!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new Error(`HTTP ${res.status}: ${errText.substring(0, 100)}`);
-    }
-
-    const data = await res.json();
-    if(logEl) {
-      logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ 응답 블록: ${(data.content||[]).map(c=>c.type).join(', ')}</div>`;
-      logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ stop: ${data.stop_reason||'?'}</div>`;
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    if(data.type === 'error') throw new Error(data.error?.message || 'API error');
-
-    // text 블록 합치기
-    const texts = (data.content || []).filter(c => c.type === "text").map(c => c.text);
-    const result = texts.join("\n");
-
-    if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ text 길이: ${result.length}자</div>`;
-
-    if(!result.trim()) {
-      // text가 없으면 tool_result에서 텍스트 추출 시도
-      const toolTexts = (data.content || [])
-        .filter(c => c.type === "tool_result")
-        .map(c => {
-          if(typeof c.content === 'string') return c.content;
-          if(Array.isArray(c.content)) return c.content.map(x => x.text||'').join('');
-          return '';
-        })
-        .join("\n");
-      if(toolTexts.trim()) {
-        if(logEl) logEl.innerHTML += `<div style="color:#555;font-size:10px;">→ tool_result에서 ${toolTexts.length}자 추출</div>`;
-        return toolTexts;
-      }
-      throw new Error('응답에 텍스트 없음 (블록: ' + (data.content||[]).map(c=>c.type).join(',') + ')');
-    }
-
-    return result;
+  // ── fetch 타임아웃 (AbortSignal 없이 — 아티팩트 호환) ──
+  function fetchSafe(url, opts, ms) {
+    ms = ms || 15000;
+    return Promise.race([
+      fetch(url, opts || {}),
+      new Promise(function(_, rej) { setTimeout(function() { rej(new Error('timeout')); }, ms); })
+    ]);
   }
 
-  // ── 로또 업데이트 ──
-  async function ltRunUpdate(){
-    if(ltUpdating) return;
+  // Anthropic API 호출 헬퍼 (레이스 일정 업데이트용)
+  async function callClaudeAPI(prompt, useSearch) {
+    const body = { model:"claude-sonnet-4-20250514", max_tokens:4096, messages:[{role:"user",content:prompt}] };
+    if(useSearch) body.tools = [{type:"web_search_20250305",name:"web_search"}];
+    const res = await fetchSafe("https://api.anthropic.com/v1/messages", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) }, 30000);
+    if(!res.ok) throw new Error('API HTTP '+res.status);
+    const data = await res.json();
+    if(data.type==='error') throw new Error(data.error?.message||'API error');
+    return (data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
+  }
+
+  // ── 로또 자동 업데이트 (CORS 프록시, signal 없음) ──
+  async function ltRunAutoUpdate() {
     const exp = ltCalcExpected();
-    if(ltLast >= exp) { showToast('이미 최신 상태야'); return; }
-    ltUpdating = true;
+    if(ltLast >= exp) { showToast('이미 최신 상태야 ('+ltLast+'회)'); return; }
+    const bodyEl = document.getElementById('lt-update-body');
+    if(bodyEl.style.display === 'none') ltToggleUpdate();
+    document.getElementById('lt-manual-form').style.display = 'none';
     const logEl = document.getElementById('lt-log');
-    logEl.style.display = "block"; logEl.innerHTML = "";
-    document.getElementById('lt-new-rounds').innerHTML = "";
+    logEl.style.display = 'block'; logEl.innerHTML = '';
+    document.getElementById('lt-new-rounds').innerHTML = '';
     const runBtn = document.getElementById('lt-run-btn');
-    runBtn.textContent = "⏳ 업데이트 중..."; runBtn.disabled = true;
+    runBtn.textContent = '⏳ 업데이트 중...'; runBtn.disabled = true;
     const cf = {...ltFreq}; let cl = ltLast;
     const nr = document.getElementById('lt-new-rounds');
     const total = exp - ltLast;
+    logEl.innerHTML += `<div>📡 ${ltLast+1}~${exp}회차 (${total}개) 자동 조회</div>`;
 
-    logEl.innerHTML += `<div>📡 ${ltLast+1}~${exp}회차 (${total}개) 업데이트 시작</div>`;
-
-    // 5개씩 배치
-    let startR = ltLast + 1;
-    const batchSize = Math.min(total, 5);
-
-    while(startR <= exp) {
-      const endR = Math.min(startR + batchSize - 1, exp);
-      const label = startR === endR ? `${startR}회차` : `${startR}~${endR}회차`;
-      logEl.innerHTML += `<div style="margin-top:6px;">🔍 ${label} 조회 중...</div>`;
+    for(let r = ltLast+1; r <= exp; r++) {
+      logEl.innerHTML += `<div>🔍 ${r}회차... (${r-ltLast}/${total})</div>`;
       logEl.scrollTop = logEl.scrollHeight;
-
-      let text = '';
-      let success = false;
-
-      // 시도 1: 검색 없이 (빠름, 훈련 데이터에 있을 수 있음)
-      // 시도 2: 검색 포함 (최신 데이터)
-      for(const useSearch of [false, true]) {
+      let data = null;
+      const target = 'https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo='+r;
+      const urls = [
+        'https://api.allorigins.win/get?url='+encodeURIComponent(target),
+        'https://api.allorigins.win/raw?url='+encodeURIComponent(target),
+        'https://corsproxy.io/?'+target,
+        'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(target),
+        'https://corsproxy.org/?'+encodeURIComponent(target),
+      ];
+      for(let pi=0; pi<urls.length; pi++) {
         try {
-          const prompt = `한국 로또 6/45 당첨번호를 알려줘.
-회차 범위: ${startR}회차${startR !== endR ? ` ~ ${endR}회차` : ''}
-
-아래 JSON 배열 형식으로만 응답해. 배열 앞뒤로 설명이나 마크다운 없이 오직 JSON만:
-
-[{"round":${startR},"nums":[1,2,3,4,5,6],"bonus":7,"date":"2025-01-01"}]
-
-규칙:
-- nums는 당첨번호 6개 (오름차순)
-- bonus는 보너스 번호 1개
-- date는 추첨일
-- 아직 추첨 안 된 회차는 배열에서 제외
-- 빈 결과면 []`;
-
-          text = await callClaudeAPI(prompt, useSearch, logEl);
-          if(text.trim()) { success = true; break; }
-        } catch(e) {
-          logEl.innerHTML += `<div style="color:#d97706;font-size:10px;">⚠️ ${useSearch?'검색':'직접'} 실패: ${e.message}</div>`;
-          logEl.scrollTop = logEl.scrollHeight;
-        }
+          const res = await fetchSafe(urls[pi], {}, 12000);
+          if(!res.ok) continue;
+          let text = await res.text();
+          if(pi===0) { try { const w=JSON.parse(text); text=w.contents||text; } catch(e){} }
+          if(!text.trim().startsWith('{')) continue;
+          const d = JSON.parse(text);
+          if(d.returnValue==='success') { data=d; break; }
+        } catch(e) { continue; }
       }
-
-      if(!success || !text.trim()) {
-        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${label}: API 호출 실패</div>`;
-        logEl.scrollTop = logEl.scrollHeight;
-        break;
+      if(!data) {
+        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${r}회차 실패 (프록시 응답 없음)</div>`;
+        logEl.innerHTML += `<div style="color:#555;font-size:10px;">💡 추첨 전이거나 네트워크 문제. 수동 입력 버튼을 써봐.</div>`;
+        logEl.scrollTop = logEl.scrollHeight; break;
       }
-
-      // JSON 추출 (여러 패턴 시도)
-      try {
-        const cleaned = text.replace(/```json\s*/g, '').replace(/```/g, '').trim();
-
-        // 패턴 1: 전체가 배열
-        // 패턴 2: 배열 부분만 추출
-        let jsonStr = null;
-        if(cleaned.startsWith('[')) {
-          jsonStr = cleaned;
-        } else {
-          const m = cleaned.match(/\[[\s\S]*?\]/);
-          if(m) jsonStr = m[0];
-        }
-
-        if(!jsonStr) {
-          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${label}: JSON 배열 없음</div>`;
-          logEl.innerHTML += `<div style="color:#333;font-size:9px;max-height:50px;overflow:hidden;word-break:break-all;">${cleaned.substring(0,300)}</div>`;
-          logEl.scrollTop = logEl.scrollHeight;
-          startR = endR + 1;
-          await new Promise(r => setTimeout(r, 1000));
-          continue;
-        }
-
-        const parsed = JSON.parse(jsonStr);
-        if(!Array.isArray(parsed)) throw new Error('배열 아님');
-
-        const valid = parsed.filter(r => {
-          if(!r || !r.round) return false;
-          if(!r.nums || !Array.isArray(r.nums) || r.nums.length !== 6) return false;
-          if(!r.bonus || typeof r.bonus !== 'number') return false;
-          if(r.nums.some(n => typeof n !== 'number' || n < 1 || n > 45)) return false;
-          if(r.bonus < 1 || r.bonus > 45) return false;
-          return true;
-        });
-
-        if(!valid.length) {
-          logEl.innerHTML += `<div style="color:#d97706;">⚠️ ${label}: 유효 데이터 0건 (추첨 전일 수 있음)</div>`;
-          logEl.scrollTop = logEl.scrollHeight;
-          break;
-        }
-
-        for(const r of valid) {
-          [...r.nums, r.bonus].forEach(n => { cf[n] = (cf[n]||0) + 1; });
-          if(r.round > cl) cl = r.round;
-          logEl.innerHTML += `<div style="color:#10b981;">✅ ${r.round}회차 (${r.date||''}): ${r.nums.join(" · ")} +${r.bonus}</div>`;
-          nr.innerHTML += `<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r.round}회차</span><span style="font-size:10px;color:#444;">${r.date||''}</span></div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${r.nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(r.bonus,30)}</div>
-          </div>`;
-        }
-        logEl.scrollTop = logEl.scrollHeight;
-        ltFreq={...cf}; ltLast=cl; await ltSaveData();
-
-      } catch(e) {
-        logEl.innerHTML += `<div style="color:#ef4444;">❌ ${label} 파싱 실패: ${e.message}</div>`;
-        logEl.scrollTop = logEl.scrollHeight;
-        break;
-      }
-
-      startR = endR + 1;
-      if(startR <= exp) await new Promise(r => setTimeout(r, 1500));
+      const nums=[data.drwtNo1,data.drwtNo2,data.drwtNo3,data.drwtNo4,data.drwtNo5,data.drwtNo6];
+      const bonus=data.bnusNo; const date=data.drwNoDate||'';
+      if(nums.some(n=>!n)||!bonus){ logEl.innerHTML+=`<div style="color:#ef4444;">❌ ${r}회차 불완전</div>`; break; }
+      [...nums,bonus].forEach(n=>{ cf[n]=(cf[n]||0)+1; }); cl=r;
+      logEl.innerHTML += `<div style="color:#10b981;">✅ ${r}회차 (${date}): ${nums.join(' · ')} +${bonus}</div>`;
+      nr.innerHTML += `<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${r}회차</span><span style="font-size:10px;color:#444;">${date}</span></div><div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${nums.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(bonus,30)}</div></div>`;
+      logEl.scrollTop = logEl.scrollHeight;
+      if(r%5===0){ ltFreq={...cf}; ltLast=cl; await ltSaveData(); }
+      await new Promise(res=>setTimeout(res,500));
     }
-
     ltFreq={...cf}; ltLast=cl; await ltSaveData(); ltUpdateHeader();
     logEl.innerHTML += `<div style="color:#a78bfa;font-weight:bold;margin-top:6px;">📊 ${cl}회차까지 저장 완료</div>`;
     logEl.scrollTop = logEl.scrollHeight;
-    runBtn.textContent = "지금 업데이트"; runBtn.disabled = false; ltUpdating = false;
+    runBtn.textContent = '자동 업데이트'; runBtn.disabled = false;
+  }
+
+  // ── 수동 입력 폼 표시 ──
+  function ltShowManual() {
+    const bodyEl = document.getElementById('lt-update-body');
+    if(bodyEl.style.display === 'none') ltToggleUpdate();
+    document.getElementById('lt-manual-form').style.display = '';
+    document.getElementById('lt-manual-round').value = ltLast + 1;
+    document.getElementById('lt-manual-nums').value = '';
+    document.getElementById('lt-manual-bonus').value = '';
+    document.getElementById('lt-manual-nums').focus();
+    const logEl = document.getElementById('lt-log');
+    logEl.style.display = 'block';
+    logEl.innerHTML = `<div style="color:#a78bfa;">📝 ${ltLast+1}회차 당첨번호를 입력해줘</div><div style="color:#555;font-size:10px;margin-top:4px;">동행복권 사이트에서 확인 후 입력</div>`;
+  }
+
+  function ltManualSave() {
+    const round = parseInt(document.getElementById('lt-manual-round').value);
+    const numsStr = document.getElementById('lt-manual-nums').value.trim();
+    const bonus = parseInt(document.getElementById('lt-manual-bonus').value);
+    const logEl = document.getElementById('lt-log');
+
+    // 파싱: 쉼표, 공백, 점 등 다양한 구분자 허용
+    const nums = numsStr.split(/[\s,·.]+/).map(Number).filter(n => n >= 1 && n <= 45);
+
+    if(!round || round <= ltLast) {
+      showToast(`${ltLast}회 이후 회차를 입력해줘`); return;
+    }
+    if(nums.length !== 6) {
+      showToast('당첨번호 6개를 입력해줘'); document.getElementById('lt-manual-nums').focus(); return;
+    }
+    if(new Set(nums).size !== 6) {
+      showToast('중복 번호가 있어'); return;
+    }
+    if(!bonus || bonus < 1 || bonus > 45) {
+      showToast('보너스 번호를 입력해줘 (1~45)'); document.getElementById('lt-manual-bonus').focus(); return;
+    }
+
+    const sorted = [...nums].sort((a,b) => a-b);
+
+    // 통계 반영
+    [...sorted, bonus].forEach(n => { ltFreq[n] = (ltFreq[n]||0) + 1; });
+    ltLast = round;
+    ltSaveData();
+    ltUpdateHeader();
+
+    // UI 표시
+    logEl.innerHTML += `<div style="color:#10b981;margin-top:8px;">✅ ${round}회차: ${sorted.join(" · ")} +${bonus}</div>`;
+    const nr = document.getElementById('lt-new-rounds');
+    nr.innerHTML += `<div style="background:#0d0d14;border:1px solid #8b5cf633;border-radius:10px;padding:12px 14px;margin-top:8px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:12px;font-weight:800;color:#8b5cf6;">${round}회차</span></div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">${sorted.map(n=>ltBallHTML(n,30)).join('')}<span style="color:#333;font-size:12px;margin:0 2px;">+</span>${ltBallHTML(bonus,30)}</div>
+    </div>`;
+    logEl.scrollTop = logEl.scrollHeight;
+
+    showToast(`${round}회차 저장 완료!`);
+
+    // 다음 회차 준비
+    const nextExp = ltCalcExpected();
+    if(ltLast < nextExp) {
+      document.getElementById('lt-manual-round').value = ltLast + 1;
+      document.getElementById('lt-manual-nums').value = '';
+      document.getElementById('lt-manual-bonus').value = '';
+      document.getElementById('lt-manual-nums').focus();
+    } else {
+      document.getElementById('lt-manual-form').style.display = 'none';
+      logEl.innerHTML += `<div style="color:#a78bfa;font-weight:bold;margin-top:6px;">📊 최신 상태! (${ltLast}회까지 반영)</div>`;
+    }
   }
 
   async function ltReset(){
@@ -4023,9 +4005,6 @@
     res.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#555;">검색 중...</div>';
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
       // 병렬 3-way 검색: 일반 / intitle / 한국어 제한
       const urls = [
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&printType=books&orderBy=relevance`,
@@ -4034,12 +4013,11 @@
       ];
 
       const results = await Promise.allSettled(
-        urls.map(url => fetch(url, { signal: controller.signal }).then(r => {
+        urls.map(url => fetchSafe(url, {}, 10000).then(r => {
           if(!r.ok) throw new Error('API ' + r.status);
           return r.json();
         }))
       );
-      clearTimeout(timeoutId);
 
       // 결과 병합 + 중복 제거
       const seen = new Set();
