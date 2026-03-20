@@ -4005,11 +4005,11 @@
     res.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#555;">검색 중...</div>';
 
     try {
-      // 병렬 3-way 검색: 일반 / intitle / 한국어 제한
+      // 1순위: 한국어 제목 검색 → 2순위: 한국어 일반 → 3순위: 전체 (폴백)
       const urls = [
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&printType=books&orderBy=relevance`,
-        `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(q)}&maxResults=15&printType=books&orderBy=relevance`,
+        `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(q)}&langRestrict=ko&maxResults=20&printType=books`,
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ko&maxResults=15&printType=books`,
+        `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(q)}&maxResults=10&printType=books&orderBy=relevance`,
       ];
 
       const results = await Promise.allSettled(
@@ -4033,22 +4033,39 @@
         }
       }
 
-      // 한국어 관련성 높은 것 우선 정렬
-      allItems.sort((a, b) => {
-        const aInfo = a.volumeInfo || {};
-        const bInfo = b.volumeInfo || {};
-        const aKo = (aInfo.language === 'ko' ? 10 : 0)
-          + ((aInfo.title||'').includes(q) ? 5 : 0)
-          + ((aInfo.authors||[]).join('').match(/[가-힣]/) ? 3 : 0)
-          + ((aInfo.publisher||'').match(/[가-힣]/) ? 2 : 0);
-        const bKo = (bInfo.language === 'ko' ? 10 : 0)
-          + ((bInfo.title||'').includes(q) ? 5 : 0)
-          + ((bInfo.authors||[]).join('').match(/[가-힣]/) ? 3 : 0)
-          + ((bInfo.publisher||'').match(/[가-힣]/) ? 2 : 0);
-        return bKo - aKo;
+      // 관련성 필터: 제목 또는 저자에 검색어가 포함된 것만 (또는 한국어 책)
+      const qLow = q.toLowerCase();
+      const filtered = allItems.filter(item => {
+        const info = item.volumeInfo || {};
+        const title = (info.title||'').toLowerCase();
+        const authors = (info.authors||[]).join(' ').toLowerCase();
+        const isKo = info.language === 'ko';
+        const hasKorean = /[가-힣]/.test(info.title||'') || /[가-힣]/.test((info.authors||[]).join(''));
+        const titleMatch = title.includes(qLow) || qLow.split('').every(ch => title.includes(ch));
+        const authorMatch = authors.includes(qLow);
+        return titleMatch || authorMatch || isKo || hasKorean;
       });
 
-      const items = allItems.slice(0, 20);
+      // 정렬: 한국어 + 제목 일치도 우선
+      filtered.sort((a, b) => {
+        const aInfo = a.volumeInfo || {};
+        const bInfo = b.volumeInfo || {};
+        const aTitle = (aInfo.title||'').toLowerCase();
+        const bTitle = (bInfo.title||'').toLowerCase();
+        const aScore = (aInfo.language === 'ko' ? 20 : 0)
+          + (/[가-힣]/.test(aInfo.title||'') ? 10 : 0)
+          + (aTitle === qLow ? 15 : aTitle.startsWith(qLow) ? 8 : aTitle.includes(qLow) ? 5 : 0)
+          + (/[가-힣]/.test((aInfo.authors||[]).join('')) ? 3 : 0)
+          + (/[가-힣]/.test(aInfo.publisher||'') ? 2 : 0);
+        const bScore = (bInfo.language === 'ko' ? 20 : 0)
+          + (/[가-힣]/.test(bInfo.title||'') ? 10 : 0)
+          + (bTitle === qLow ? 15 : bTitle.startsWith(qLow) ? 8 : bTitle.includes(qLow) ? 5 : 0)
+          + (/[가-힣]/.test((bInfo.authors||[]).join('')) ? 3 : 0)
+          + (/[가-힣]/.test(bInfo.publisher||'') ? 2 : 0);
+        return bScore - aScore;
+      });
+
+      const items = filtered.slice(0, 15);
 
       if(!items.length) {
         res.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:#555;">검색 결과 없음</div>';
