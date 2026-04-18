@@ -1,32 +1,61 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Morning Miracle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:#0a0a0a;color:#d4d4d4;overflow-x:hidden;}
+::-webkit-scrollbar{width:3px;height:0;}
+::-webkit-scrollbar-track{background:#111;}
+::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
+.hideScroll::-webkit-scrollbar{height:0;display:none;}
+.hideScroll{-ms-overflow-style:none;scrollbar-width:none;}
+input[type=date],input[type=time]{color-scheme:dark;font-family:'Noto Sans KR',sans-serif;}
+input,button{font-family:'Noto Sans KR',sans-serif;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const{useState,useEffect,useMemo,useRef}=React;
 
-const TABS = ["루틴", "목표", "캘린더"];
-const getDateStr = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-const getToday = () => getDateStr(new Date());
-const parseDate = (s) => { const [y,m,d] = s.split('-').map(Number); return new Date(y,m-1,d); };
-const addDaysStr = (ds, n) => { const d = parseDate(ds); d.setDate(d.getDate()+n); return getDateStr(d); };
-const formatDate = (ds) => { const d=parseDate(ds); const w=['일','월','화','수','목','금','토']; return `${d.getMonth()+1}월 ${d.getDate()}일 (${w[d.getDay()]})`; };
-const isWeekend = (ds) => { const dow = parseDate(ds).getDay(); return dow===0||dow===6; };
-const formatShort = (ds) => { const d=parseDate(ds); return `${d.getMonth()+1}/${d.getDate()}`; };
+const TABS=["루틴","목표","캘린더"];
+const getDateStr=(d)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const getToday=()=>getDateStr(new Date());
+const parseDate=(s)=>{const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);};
+const addDaysStr=(ds,n)=>{const d=parseDate(ds);d.setDate(d.getDate()+n);return getDateStr(d);};
+const formatDate=(ds)=>{const d=parseDate(ds);const w=['일','월','화','수','목','금','토'];return`${d.getMonth()+1}월 ${d.getDate()}일 (${w[d.getDay()]})`;};
+const isWeekend=(ds)=>{const dow=parseDate(ds).getDay();return dow===0||dow===6;};
+const formatShort=(ds)=>{const d=parseDate(ds);return`${d.getMonth()+1}/${d.getDate()}`;};
 
-function getKoreanHolidays(year) {
-  const fixed = [[1,1,'신정'],[3,1,'삼일절'],[5,5,'어린이날'],[6,6,'현충일'],[8,15,'광복절'],[10,3,'개천절'],[10,9,'한글날'],[12,25,'크리스마스']]
+function getKoreanHolidays(year){
+  const fixed=[[1,1,'신정'],[3,1,'삼일절'],[5,5,'어린이날'],[6,6,'현충일'],[8,15,'광복절'],[10,3,'개천절'],[10,9,'한글날'],[12,25,'크리스마스']]
     .map(([m,d,n])=>({date:`${year}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`,name:n}));
-  const lunar = {2024:{s:'2024-02-10',c:'2024-09-17',b:'2024-05-15'},2025:{s:'2025-01-29',c:'2025-10-06',b:'2025-05-05'},2026:{s:'2026-02-17',c:'2026-09-25',b:'2026-05-24'},2027:{s:'2027-02-06',c:'2027-09-15',b:'2027-05-13'},2028:{s:'2028-01-26',c:'2028-10-03',b:'2028-05-02'},2029:{s:'2029-02-13',c:'2029-09-22',b:'2029-05-20'},2030:{s:'2030-02-03',c:'2030-09-12',b:'2030-05-09'}}[year];
-  if (!lunar) return fixed;
-  return [...fixed,{date:addDaysStr(lunar.s,-1),name:'설날 연휴'},{date:lunar.s,name:'설날'},{date:addDaysStr(lunar.s,1),name:'설날 연휴'},{date:addDaysStr(lunar.c,-1),name:'추석 연휴'},{date:lunar.c,name:'추석'},{date:addDaysStr(lunar.c,1),name:'추석 연휴'},{date:lunar.b,name:'부처님 오신 날'}];
+  const lunar={2024:{s:'2024-02-10',c:'2024-09-17',b:'2024-05-15'},2025:{s:'2025-01-29',c:'2025-10-06',b:'2025-05-05'},2026:{s:'2026-02-17',c:'2026-09-25',b:'2026-05-24'},2027:{s:'2027-02-06',c:'2027-09-15',b:'2027-05-13'},2028:{s:'2028-01-26',c:'2028-10-03',b:'2028-05-02'},2029:{s:'2029-02-13',c:'2029-09-22',b:'2029-05-20'},2030:{s:'2030-02-03',c:'2030-09-12',b:'2030-05-09'}}[year];
+  if(!lunar)return fixed;
+  return[...fixed,{date:addDaysStr(lunar.s,-1),name:'설날 연휴'},{date:lunar.s,name:'설날'},{date:addDaysStr(lunar.s,1),name:'설날 연휴'},{date:addDaysStr(lunar.c,-1),name:'추석 연휴'},{date:lunar.c,name:'추석'},{date:addDaysStr(lunar.c,1),name:'추석 연휴'},{date:lunar.b,name:'부처님 오신 날'}];
 }
 
-function getEventsForDate(all, ds) {
-  const t=parseDate(ds); const res=[];
+function getEventsForDate(all,ds){
+  const t=parseDate(ds);const res=[];
   Object.values(all).flat().forEach(ev=>{
-    const s=parseDate(ev.startDate); const e=ev.endDate?parseDate(ev.endDate):s;
+    const s=parseDate(ev.startDate);const e=ev.endDate?parseDate(ev.endDate):s;
     if(!ev.repeat||ev.repeat==='none'){if(t>=s&&t<=e)res.push(ev);}
     else{const rE=ev.repeatUntil?parseDate(ev.repeatUntil):new Date(t.getFullYear()+2,0,1);if(t>rE||t<s)return;const diff=Math.floor((t-s)/864e5);let ok=false;if(ev.repeat==='daily')ok=true;else if(ev.repeat==='weekly')ok=diff%7===0;else if(ev.repeat==='biweekly')ok=diff%14===0;else if(ev.repeat==='monthly')ok=t.getDate()===s.getDate();else if(ev.repeat==='yearly')ok=t.getDate()===s.getDate()&&t.getMonth()===s.getMonth();if(ok)res.push({...ev,isRepeat:true});}
-  }); return res;
+  });return res;
 }
 
-function getRoutinesForDate(routines, ds) {
+function getRoutinesForDate(routines,ds){
   const we=isWeekend(ds);
   return routines.filter(r=>{
     if(r.deletedDate&&ds>=r.deletedDate)return false;
@@ -34,11 +63,11 @@ function getRoutinesForDate(routines, ds) {
   });
 }
 
-const SK='mm-v6';
+const SK='mm-v7';
 const load=()=>{try{return JSON.parse(localStorage.getItem(SK));}catch{return null;}};
 const save=(d)=>{try{localStorage.setItem(SK,JSON.stringify(d));}catch{}};
 
-const defaultRoutines = [
+const defaultRoutines=[
   {id:'r1',name:'새벽 4시 기상',type:'check',time:'04:00',category:'daily',days:'all'},
   {id:'r2',name:'물 한 잔',type:'check',time:'04:05',category:'daily',days:'all'},
   {id:'r3',name:'운동 시작',type:'check',time:'04:30',category:'daily',days:'weekday'},
@@ -49,32 +78,21 @@ const defaultRoutines = [
   {id:'r4',name:'금주',type:'streak',category:'streak',days:'all'},
   {id:'r5',name:'푸쉬업',type:'progressive',startCount:10,category:'progressive',days:'all'},
 ];
-
-const defaultTracks = [
-  {id:'t1',name:'독서 자격증',color:'#f59e0b',milestones:[
-    {id:'m1',name:'독서지도사 3급',done:false,doneDate:null},
-    {id:'m2',name:'독서지도사 2급',done:false,doneDate:null},
-    {id:'m3',name:'독서논술지도사',done:false,doneDate:null},
-    {id:'m4',name:'독서치료사',done:false,doneDate:null},
-  ]},
-  {id:'t2',name:'마라톤',color:'#3b82f6',milestones:[
-    {id:'m5',name:'5km 완주',done:false,doneDate:null},
-    {id:'m6',name:'10km 완주',done:false,doneDate:null},
-    {id:'m7',name:'하프 마라톤',done:false,doneDate:null},
-    {id:'m8',name:'풀 마라톤',done:false,doneDate:null},
-  ]},
+const defaultTracks=[
+  {id:'t1',name:'독서 자격증',color:'#f59e0b',milestones:[{id:'m1',name:'독서지도사 3급',done:false,doneDate:null},{id:'m2',name:'독서지도사 2급',done:false,doneDate:null},{id:'m3',name:'독서논술지도사',done:false,doneDate:null},{id:'m4',name:'독서치료사',done:false,doneDate:null}]},
+  {id:'t2',name:'마라톤',color:'#3b82f6',milestones:[{id:'m5',name:'5km 완주',done:false,doneDate:null},{id:'m6',name:'10km 완주',done:false,doneDate:null},{id:'m7',name:'하프 마라톤',done:false,doneDate:null},{id:'m8',name:'풀 마라톤',done:false,doneDate:null}]},
 ];
 
-export default function App() {
-  const [tab, setTab] = useState(0);
-  const [routines, setRoutines] = useState(defaultRoutines);
-  const [logs, setLogs] = useState({});
-  const [goals, setGoals] = useState({yearly:[],monthly:[],weekly:[]});
-  const [tracks, setTracks] = useState(defaultTracks);
-  const [events, setEvents] = useState({});
-  const [loaded, setLoaded] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(getToday());
-  const [calMonth, setCalMonth] = useState(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()};});
+function App(){
+  const[tab,setTab]=useState(0);
+  const[routines,setRoutines]=useState(defaultRoutines);
+  const[logs,setLogs]=useState({});
+  const[goals,setGoals]=useState({yearly:[],monthly:[],weekly:[]});
+  const[tracks,setTracks]=useState(defaultTracks);
+  const[events,setEvents]=useState({});
+  const[loaded,setLoaded]=useState(false);
+  const[selectedDate,setSelectedDate]=useState(getToday());
+  const[calMonth,setCalMonth]=useState(()=>{const d=new Date();return{y:d.getFullYear(),m:d.getMonth()};});
 
   useEffect(()=>{const s=load();if(s){s.routines&&setRoutines(s.routines);s.logs&&setLogs(s.logs);s.goals&&setGoals(s.goals);s.tracks&&setTracks(s.tracks);s.events&&setEvents(s.events);}setLoaded(true);},[]);
   useEffect(()=>{if(loaded)save({routines,logs,goals,tracks,events});},[routines,logs,goals,tracks,events,loaded]);
@@ -109,9 +127,8 @@ export default function App() {
   }));
   const removeMilestone=(tid,mid)=>setTracks(p=>p.map(t=>t.id===tid?{...t,milestones:t.milestones.filter(m=>m.id!==mid)}:t));
 
-  return (
+  return(
     <div style={S.app}>
-      <style>{CSS}</style>
       <div style={S.header}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
@@ -142,16 +159,15 @@ export default function App() {
 }
 
 /* ── Routine Tab ────────────────────────────────────────── */
-function Rout({routines,logs,today,toggleLog,getStreak,getProgLevel,addRoutine,removeRoutine,setProgCount}) {
-  const [viewDate,setViewDate]=useState(today);
-  const [showAdd,setShowAdd]=useState(false);
-  const [nm,setNm]=useState('');const [tp,setTp]=useState('check');const [cat,setCat]=useState('daily');const [tm,setTm]=useState('06:00');const [cnt,setCnt]=useState(10);const [days,setDays]=useState('all');
-  const [delId,setDelId]=useState(null);const [epId,setEpId]=useState(null);
+function Rout({routines,logs,today,toggleLog,getStreak,getProgLevel,addRoutine,removeRoutine,setProgCount}){
+  const[viewDate,setViewDate]=useState(today);
+  const[showAdd,setShowAdd]=useState(false);
+  const[nm,setNm]=useState('');const[tp,setTp]=useState('check');const[cat,setCat]=useState('daily');const[tm,setTm]=useState('06:00');const[cnt,setCnt]=useState(10);const[days,setDays]=useState('all');
+  const[delId,setDelId]=useState(null);const[epId,setEpId]=useState(null);
   const scrollRef=useRef(null);
   const dateList=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);dateList.push(getDateStr(d));}
   const vr=getRoutinesForDate(routines,viewDate);
   const cats={daily:{l:'하루 루틴',items:vr.filter(r=>r.category==='daily').sort((a,b)=>(a.time||'').localeCompare(b.time||''))},streak:{l:'스트릭 루틴',items:vr.filter(r=>r.category==='streak')},progressive:{l:'프로그레시브 루틴',items:vr.filter(r=>r.category==='progressive')}};
-
   useEffect(()=>{if(scrollRef.current)scrollRef.current.scrollLeft=scrollRef.current.scrollWidth;},[]);
 
   return(
@@ -219,10 +235,10 @@ function Rout({routines,logs,today,toggleLog,getStreak,getProgLevel,addRoutine,r
 }
 
 /* ── Goal Tab ───────────────────────────────────────────── */
-function GoalTab({goals,addGoal,toggleGoal,removeGoal,tracks,addTrack,removeTrack,addMilestone,toggleMilestone,removeMilestone}) {
-  const [mode,setMode]=useState('tracks');
-  const [newTrackName,setNewTrackName]=useState('');const [newTrackColor,setNewTrackColor]=useState('#3b82f6');const [showAddTrack,setShowAddTrack]=useState(false);
-  const [newMsInputs,setNewMsInputs]=useState({});const [expandedTrack,setExpandedTrack]=useState(null);const [confirmDelTrack,setConfirmDelTrack]=useState(null);
+function GoalTab({goals,addGoal,toggleGoal,removeGoal,tracks,addTrack,removeTrack,addMilestone,toggleMilestone,removeMilestone}){
+  const[mode,setMode]=useState('tracks');
+  const[newTrackName,setNewTrackName]=useState('');const[newTrackColor,setNewTrackColor]=useState('#3b82f6');const[showAddTrack,setShowAddTrack]=useState(false);
+  const[newMsInputs,setNewMsInputs]=useState({});const[expandedTrack,setExpandedTrack]=useState(null);const[confirmDelTrack,setConfirmDelTrack]=useState(null);
   const colors=['#f87171','#fb923c','#facc15','#4ade80','#34d399','#22d3ee','#60a5fa','#3b82f6','#a78bfa','#c084fc','#f472b6','#e5e5e5'];
 
   return(
@@ -335,39 +351,33 @@ function GoalTab({goals,addGoal,toggleGoal,removeGoal,tracks,addTrack,removeTrac
   );
 }
 
-/* ── Time-based Goals (year/month organized) ──────────── */
-function TimeGoals({goals,addGoal,toggleGoal,removeGoal}) {
+/* ── Time Goals ─────────────────────────────────────────── */
+function TimeGoals({goals,addGoal,toggleGoal,removeGoal}){
   const now=new Date();
-  const [selYear,setSelYear]=useState(now.getFullYear());
-  const [selMonth,setSelMonth]=useState(now.getMonth()+1);
-  const [yrInput,setYrInput]=useState('');
-  const [moInput,setMoInput]=useState('');
-  const [wkInputs,setWkInputs]=useState({});
+  const[selYear,setSelYear]=useState(now.getFullYear());
+  const[selMonth,setSelMonth]=useState(now.getMonth()+1);
+  const[yrInput,setYrInput]=useState('');
+  const[moInput,setMoInput]=useState('');
+  const[wkInputs,setWkInputs]=useState({});
 
   const yearGoals=(goals.yearly||[]).filter(g=>g.year===selYear);
   const monthGoals=(goals.monthly||[]).filter(g=>g.year===selYear&&g.month===selMonth);
   const weekGoals=(goals.weekly||[]).filter(g=>g.year===selYear&&g.month===selMonth);
   const weeks=[1,2,3,4,5];
 
-  // all years that have goals + current year
   const allYears=new Set([selYear]);
   (goals.yearly||[]).forEach(g=>{if(g.year)allYears.add(g.year);});
   (goals.monthly||[]).forEach(g=>{if(g.year)allYears.add(g.year);});
   (goals.weekly||[]).forEach(g=>{if(g.year)allYears.add(g.year);});
   const yearList=[...allYears].sort((a,b)=>b-a);
-
   const pct=(arr)=>{if(!arr.length)return 0;return Math.round(arr.filter(g=>g.done).length/arr.length*100);};
 
   return(
     <div>
-      {/* Year selector */}
       <div style={{display:'flex',gap:4,marginBottom:10,overflowX:'auto',paddingBottom:2}} className="hideScroll">
-        {yearList.map(y=>(
-          <button key={y} onClick={()=>setSelYear(y)} style={{...S.cbtn,background:selYear===y?'#facc15':'#1a1a1a',color:selYear===y?'#111':'#737373',padding:'6px 14px',flexShrink:0,fontSize:13,fontWeight:800}}>{y}</button>
-        ))}
+        {yearList.map(y=>(<button key={y} onClick={()=>setSelYear(y)} style={{...S.cbtn,background:selYear===y?'#facc15':'#1a1a1a',color:selYear===y?'#111':'#737373',padding:'6px 14px',flexShrink:0,fontSize:13,fontWeight:800}}>{y}</button>))}
       </div>
 
-      {/* ── 연간 목표 ──────────────────────────────────── */}
       <div style={{...S.card,borderLeft:'3px solid #facc15',marginBottom:10}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{...S.ct,color:'#facc15',margin:0}}>{selYear}년 연간 목표</div>
@@ -387,22 +397,15 @@ function TimeGoals({goals,addGoal,toggleGoal,removeGoal}) {
         ))}
       </div>
 
-      {/* Month selector */}
       <div style={{display:'flex',gap:3,marginBottom:10,overflowX:'auto',paddingBottom:2}} className="hideScroll">
         {[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>{
-          const hasMo=(goals.monthly||[]).some(g=>g.year===selYear&&g.month===m);
-          const hasWk=(goals.weekly||[]).some(g=>g.year===selYear&&g.month===m);
-          const has=hasMo||hasWk;
-          return(
-            <button key={m} onClick={()=>setSelMonth(m)} style={{...S.cbtn,background:selMonth===m?'#60a5fa':'#1a1a1a',color:selMonth===m?'#111':'#737373',padding:'6px 12px',flexShrink:0,fontSize:12,fontWeight:selMonth===m?800:600,position:'relative'}}>
-              {m}월
-              {has&&selMonth!==m&&<span style={{position:'absolute',top:2,right:4,width:4,height:4,borderRadius:2,background:'#60a5fa'}}/>}
-            </button>
-          );
+          const has=(goals.monthly||[]).some(g=>g.year===selYear&&g.month===m)||(goals.weekly||[]).some(g=>g.year===selYear&&g.month===m);
+          return(<button key={m} onClick={()=>setSelMonth(m)} style={{...S.cbtn,background:selMonth===m?'#60a5fa':'#1a1a1a',color:selMonth===m?'#111':'#737373',padding:'6px 12px',flexShrink:0,fontSize:12,fontWeight:selMonth===m?800:600,position:'relative'}}>
+            {m}월{has&&selMonth!==m&&<span style={{position:'absolute',top:2,right:4,width:4,height:4,borderRadius:2,background:'#60a5fa'}}/>}
+          </button>);
         })}
       </div>
 
-      {/* ── 월간 목표 ──────────────────────────────────── */}
       <div style={{...S.card,borderLeft:'3px solid #60a5fa',marginBottom:6}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
           <div style={{...S.ct,color:'#60a5fa',margin:0}}>{selMonth}월 목표</div>
@@ -422,10 +425,8 @@ function TimeGoals({goals,addGoal,toggleGoal,removeGoal}) {
         ))}
       </div>
 
-      {/* ── 주간 목표 (within month) ──────────────────── */}
       {weeks.map(w=>{
-        const wGoals=weekGoals.filter(g=>g.week===w);
-        const wInput=wkInputs[w]||'';
+        const wGoals=weekGoals.filter(g=>g.week===w);const wInput=wkInputs[w]||'';
         return(
           <div key={w} style={{...S.card,marginBottom:4,padding:'10px 14px',borderLeft:'3px solid #262626'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:wGoals.length||wInput?6:0}}>
@@ -453,37 +454,33 @@ function TimeGoals({goals,addGoal,toggleGoal,removeGoal}) {
 }
 
 /* ── Calendar Tab ───────────────────────────────────────── */
-function CalTab({calMonth,setCalMonth,sel,setSel,events,addEvent,toggleEvent,removeEvent,today,goals}) {
-  const [showAdd,setShowAdd]=useState(false);
-  const [evText,setEvText]=useState('');const [evStart,setEvStart]=useState(sel);const [evEnd,setEvEnd]=useState(sel);
-  const [evRepeat,setEvRepeat]=useState('none');const [evRepUntil,setEvRepUntil]=useState('');const [evT1,setEvT1]=useState('');const [evT2,setEvT2]=useState('');
-
+function CalTab({calMonth,setCalMonth,sel,setSel,events,addEvent,toggleEvent,removeEvent,today,goals}){
+  const[showAdd,setShowAdd]=useState(false);
+  const[evText,setEvText]=useState('');const[evStart,setEvStart]=useState(sel);const[evEnd,setEvEnd]=useState(sel);
+  const[evRepeat,setEvRepeat]=useState('none');const[evRepUntil,setEvRepUntil]=useState('');const[evT1,setEvT1]=useState('');const[evT2,setEvT2]=useState('');
   useEffect(()=>{setEvStart(sel);setEvEnd(sel);},[sel]);
 
-  const {y,m}=calMonth;const first=new Date(y,m,1).getDay();const dim=new Date(y,m+1,0).getDate();
+  const{y,m}=calMonth;const first=new Date(y,m,1).getDay();const dim=new Date(y,m+1,0).getDate();
   const hols=useMemo(()=>getKoreanHolidays(y),[y]);
   const holMap=useMemo(()=>{const mp={};hols.forEach(h=>{if(!mp[h.date])mp[h.date]=[];mp[h.date].push(h.name);});return mp;},[hols]);
   const cells=[];for(let i=0;i<first;i++)cells.push(null);for(let d=1;d<=dim;d++)cells.push(d);
 
-  // Goal helpers
   const getWeekOfMonth=(day)=>Math.ceil(day/7);
   const monthHasGoals=(goals.yearly||[]).some(g=>g.year===y)||(goals.monthly||[]).some(g=>g.year===y&&g.month===m+1);
   const getGoalsForDay=(day)=>{
-    const wk=getWeekOfMonth(day);
-    const mo=m+1;
-    const yGoals=(goals.yearly||[]).filter(g=>g.year===y&&!g.done);
-    const mGoals=(goals.monthly||[]).filter(g=>g.year===y&&g.month===mo&&!g.done);
-    const wGoals=(goals.weekly||[]).filter(g=>g.year===y&&g.month===mo&&g.week===wk&&!g.done);
-    return{yGoals,mGoals,wGoals,hasGoals:yGoals.length>0||mGoals.length>0||wGoals.length>0};
+    const wk=getWeekOfMonth(day);const mo=m+1;
+    const yG=(goals.yearly||[]).filter(g=>g.year===y&&!g.done);
+    const mG=(goals.monthly||[]).filter(g=>g.year===y&&g.month===mo&&!g.done);
+    const wG=(goals.weekly||[]).filter(g=>g.year===y&&g.month===mo&&g.week===wk&&!g.done);
+    return{yG,mG,wG,has:yG.length>0||mG.length>0||wG.length>0};
   };
   const dayHasWeekGoal=(day)=>{const wk=getWeekOfMonth(day);return(goals.weekly||[]).some(g=>g.year===y&&g.month===m+1&&g.week===wk);};
+  const dayInfo=(day)=>{if(!day)return{};const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;return{ds,evts:getEventsForDate(events,ds),hol:holMap[ds],hasGoal:dayHasWeekGoal(day)||monthHasGoals};};
 
-  const dayInfo=(day)=>{if(!day)return{};const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;const hasG=dayHasWeekGoal(day)||monthHasGoals;return{ds,evts:getEventsForDate(events,ds),hol:holMap[ds],hasGoal:hasG};};
   const prev=()=>setCalMonth(p=>p.m===0?{y:p.y-1,m:11}:{...p,m:p.m-1});
   const next=()=>setCalMonth(p=>p.m===11?{y:p.y+1,m:0}:{...p,m:p.m+1});
   const selEvts=getEventsForDate(events,sel);const selHols=holMap[sel]||[];
-  const selDay=parseDate(sel).getDate();
-  const selGoals=getGoalsForDay(selDay);
+  const selDay=parseDate(sel).getDate();const selGoals=getGoalsForDay(selDay);
   const doAdd=()=>{if(!evText.trim())return;addEvent({text:evText,startDate:evStart,endDate:evEnd,timeStart:evT1,timeEnd:evT2,repeat:evRepeat,repeatUntil:evRepUntil||undefined,done:false});setEvText('');setEvRepeat('none');setEvRepUntil('');setEvT1('');setEvT2('');setShowAdd(false);};
 
   return(
@@ -524,23 +521,21 @@ function CalTab({calMonth,setCalMonth,sel,setSel,events,addEvent,toggleEvent,rem
         </div>
         {selHols.map((h,i)=><div key={i} style={{fontSize:12,color:'#f87171',fontWeight:700,marginBottom:2}}>{h}</div>)}
 
-        {/* ── Goals strip ────────────────────────────────── */}
-        {selGoals.hasGoals&&<div style={{margin:'10px 0 6px',background:'#141414',borderRadius:8,border:'1px solid #1a1a1a',overflow:'hidden'}}>
-          {selGoals.yGoals.length>0&&<div style={{padding:'7px 12px',borderLeft:'3px solid #facc15',display:'flex',gap:8,alignItems:'flex-start'}}>
+        {selGoals.has&&<div style={{margin:'10px 0 6px',background:'#141414',borderRadius:8,border:'1px solid #1a1a1a',overflow:'hidden'}}>
+          {selGoals.yG.length>0&&<div style={{padding:'7px 12px',borderLeft:'3px solid #facc15',display:'flex',gap:8,alignItems:'flex-start'}}>
             <span style={{fontSize:9,color:'#facc15',fontWeight:800,flexShrink:0,marginTop:1}}>연간</span>
-            <div style={{flex:1}}>{selGoals.yGoals.map(g=><div key={g.id} style={{fontSize:11,color:'#a3a3a3',lineHeight:1.5}}>{g.text}</div>)}</div>
+            <div style={{flex:1}}>{selGoals.yG.map(g=><div key={g.id} style={{fontSize:11,color:'#a3a3a3',lineHeight:1.5}}>{g.text}</div>)}</div>
           </div>}
-          {selGoals.mGoals.length>0&&<div style={{padding:'7px 12px',borderLeft:'3px solid #60a5fa',borderTop:selGoals.yGoals.length?'1px solid #1a1a1a':'none',display:'flex',gap:8,alignItems:'flex-start'}}>
+          {selGoals.mG.length>0&&<div style={{padding:'7px 12px',borderLeft:'3px solid #60a5fa',borderTop:selGoals.yG.length?'1px solid #1a1a1a':'none',display:'flex',gap:8,alignItems:'flex-start'}}>
             <span style={{fontSize:9,color:'#60a5fa',fontWeight:800,flexShrink:0,marginTop:1}}>{m+1}월</span>
-            <div style={{flex:1}}>{selGoals.mGoals.map(g=><div key={g.id} style={{fontSize:11,color:'#a3a3a3',lineHeight:1.5}}>{g.text}</div>)}</div>
+            <div style={{flex:1}}>{selGoals.mG.map(g=><div key={g.id} style={{fontSize:11,color:'#a3a3a3',lineHeight:1.5}}>{g.text}</div>)}</div>
           </div>}
-          {selGoals.wGoals.length>0&&<div style={{padding:'7px 12px',borderLeft:'3px solid #4ade80',borderTop:(selGoals.yGoals.length||selGoals.mGoals.length)?'1px solid #1a1a1a':'none',display:'flex',gap:8,alignItems:'flex-start'}}>
+          {selGoals.wG.length>0&&<div style={{padding:'7px 12px',borderLeft:'3px solid #4ade80',borderTop:(selGoals.yG.length||selGoals.mG.length)?'1px solid #1a1a1a':'none',display:'flex',gap:8,alignItems:'flex-start'}}>
             <span style={{fontSize:9,color:'#4ade80',fontWeight:800,flexShrink:0,marginTop:1}}>{getWeekOfMonth(selDay)}주</span>
-            <div style={{flex:1}}>{selGoals.wGoals.map(g=><div key={g.id} style={{fontSize:11,color:'#a3a3a3',lineHeight:1.5}}>{g.text}</div>)}</div>
+            <div style={{flex:1}}>{selGoals.wG.map(g=><div key={g.id} style={{fontSize:11,color:'#a3a3a3',lineHeight:1.5}}>{g.text}</div>)}</div>
           </div>}
         </div>}
 
-        {/* ── Events ─────────────────────────────────────── */}
         <div style={{...S.ct,fontSize:11,margin:'10px 0 4px'}}>일정</div>
         {!selEvts.length&&<div style={{color:'#262626',fontSize:11,textAlign:'center',padding:8}}>일정 없음</div>}
         {selEvts.map(ev=>(
@@ -587,13 +582,6 @@ function Chk({checked,size=20}){
   return(<div style={{width:size,height:size,borderRadius:size*0.3,border:`2px solid ${checked?'#4ade80':'#404040'}`,background:checked?'#4ade80':'transparent',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,transition:'all 0.15s'}}>{checked&&<span style={{color:'#111',fontSize:size*0.55,fontWeight:900,lineHeight:1}}>✓</span>}</div>);
 }
 
-const CSS=`
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap');
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:#111;}::-webkit-scrollbar-thumb{background:#333;border-radius:4px;}
-.hideScroll::-webkit-scrollbar{height:0;display:none;}
-input[type=date],input[type=time]{color-scheme:dark;}
-`;
 const S={
   app:{fontFamily:"'Noto Sans KR',sans-serif",background:'#0a0a0a',minHeight:'100vh',maxWidth:480,margin:'0 auto',display:'flex',flexDirection:'column',color:'#d4d4d4',paddingBottom:52},
   header:{background:'#111',padding:'14px 18px 10px',borderBottom:'1px solid #1a1a1a'},
@@ -621,3 +609,8 @@ const S={
   cnb:{background:'#1a1a1a',border:'none',color:'#d4d4d4',width:32,height:32,borderRadius:7,fontSize:12,cursor:'pointer',fontWeight:700},
   modeBtn:{flex:1,padding:'10px',border:'none',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:"'Noto Sans KR',sans-serif",transition:'all 0.2s'},
 };
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
